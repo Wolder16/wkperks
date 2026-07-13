@@ -1,0 +1,48 @@
+{
+	"schemaVersion": 1,
+	"id": "wkperks",
+	"version": "${version}",
+	"name": "WKPerks",
+	"description": "This is a mod that transfers some of the perks from the hit game White Knuckle",
+	"authors": [
+		"Divall"
+	],
+	"contact": {
+		"homepage": "",
+		"sources": "https://github.com/Wolder16/MCWKPerks"
+	},
+	"license": "MIT",
+	"icon": "assets/wkperks/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"div.wkp.WKPerks"
+		],
+		"client": [
+			"div.wkp.client.WKPerksClient"
+		],
+        "cardinal-components-entity": [
+          "div.wkp.PerkComponents"
+        ]
+	},
+	"mixins": [
+		"wkperks.mixins.json",
+		{
+			"config": "wkperks.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*",
+        "cardinal-components-base": ">=6.1.3",
+        "cardinal-components-entity": ">=6.1.3"
+	},
+    "custom": {
+      "cardinal-components": [
+        "wkperks:perks"
+      ]
+    }
+}

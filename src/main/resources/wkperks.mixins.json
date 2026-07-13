@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "div.wkp.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+      "EatFoodMixin"
+    ],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
