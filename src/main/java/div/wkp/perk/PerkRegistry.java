@@ -3,6 +3,7 @@ package div.wkp.perk;
 import div.wkp.perk.perks.PulseOrgan;
 import div.wkp.perk.perks.VelocityAugments;
 import div.wkp.perk.perks.UnstoppablePerk;
+import div.wkp.perk.perks.RhoGracePerk;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -17,6 +18,7 @@ public final class PerkRegistry {
         register(new VelocityAugments());
         register(new PulseOrgan());
         register(new UnstoppablePerk());
+        register(new RhoGracePerk());
         // >>> Чтобы добавить новый перк — просто добавь строку сюда <<<
     }
 

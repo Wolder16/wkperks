@@ -1,7 +1,13 @@
 package div.wkp;
 
+import div.wkp.block.ModBlocks;
+import div.wkp.block.ModBlockEntities;
+import div.wkp.item.ModItems;
+import div.wkp.altar.AltarRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import div.wkp.altar.AltarRegistry;
+import div.wkp.item.ModItems;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
@@ -18,6 +24,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +50,12 @@ public final class WKPerks implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("WKPerks: инициализация...");
         PerkRegistry.init();
+        ModItems.initialize();
+        ModBlocks.initialize();
+        ModBlockEntities.initialize();
 
+        PerkRegistry.init();
+        AltarRegistry.init();
         PayloadTypeRegistry.playC2S().register(DoubleJumpPayload.ID, DoubleJumpPayload.CODEC);
 
         // Приём двойного прыжка
@@ -91,16 +103,22 @@ public final class WKPerks implements ModInitializer {
 
             // Отслеживание смены режима игры
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                GameMode current = player.interactionManager.getGameMode();
-                GameMode last = LAST_GAMEMODE.get(player.getUuid());
-                if (last != current) {
-                    LAST_GAMEMODE.put(player.getUuid(), current);
-                    // Режим сменился — пересчитываем перки
+                UUID uuid = player.getUuid();
+
+                GameMode currentMode =
+                        player.interactionManager.getGameMode();
+
+                GameMode previousMode = LAST_GAMEMODE.put(uuid, currentMode);
+
+                if (previousMode != currentMode) {
                     PerkUtil.refreshPlayer(player);
                 }
             }
-        });
 
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            LAST_GAMEMODE.remove(handler.player.getUuid());
+        });
         registerCommands();
     }
 

@@ -31,38 +31,20 @@ public class PlayerPerkComponent implements PerkComponent {
 
     @Override
     public void addPerk(String perkId) {
-        Perk perk = PerkRegistry.get(perkId);
-        if (perk == null) return;
-        int current = perks.getOrDefault(perkId, 0);
-        if (current >= perk.getMaxLevel()) return;
-        int newLevel = current + 1;
-        perks.put(perkId, newLevel);
-        PerkComponents.PERK_COMPONENT.sync(provider);
-        perk.onLevelChanged(provider, newLevel);
+        changePerkLevel(perkId, 1);
     }
 
     @Override
     public void removePerk(String perkId) {
-        int current = perks.getOrDefault(perkId, 0);
-        if (current <= 0) return;
-        int newLevel = current - 1;
-        Perk perk = PerkRegistry.get(perkId);
-        if (newLevel <= 0) {
-            perks.remove(perkId);
-            if (perk != null) perk.onLevelChanged(provider, 0);
-        } else {
-            perks.put(perkId, newLevel);
-            if (perk != null) perk.onLevelChanged(provider, newLevel);
-        }
-        PerkComponents.PERK_COMPONENT.sync(provider);
+        changePerkLevel(perkId, -1);
     }
 
     @Override
     public void clearPerk(String perkId) {
-        if (perks.remove(perkId) != null) {
-            Perk perk = PerkRegistry.get(perkId);
-            if (perk != null) perk.onLevelChanged(provider, 0);
-            PerkComponents.PERK_COMPONENT.sync(provider);
+        int currentLevel = perks.getOrDefault(perkId, 0);
+
+        if (currentLevel > 0) {
+            changePerkLevel(perkId, -currentLevel);
         }
     }
 
@@ -125,5 +107,34 @@ public class PlayerPerkComponent implements PerkComponent {
                 perk.onLevelChanged(provider, entry.getValue());
             }
         }
+    }
+    @Override
+    public void changePerkLevel(String perkId, int delta) {
+        Perk perk = PerkRegistry.get(perkId);
+
+        if (perk == null || delta == 0) {
+            return;
+        }
+
+        int currentLevel = perks.getOrDefault(perkId, 0);
+
+        int newLevel = Math.max(
+                0,
+                Math.min(perk.getMaxLevel(), currentLevel + delta)
+        );
+
+        if (newLevel == currentLevel) {
+            return;
+        }
+
+        if (newLevel <= 0) {
+            perks.remove(perkId);
+        } else {
+            perks.put(perkId, newLevel);
+        }
+
+        perk.onLevelChanged(provider, newLevel);
+
+        PerkComponents.PERK_COMPONENT.sync(provider);
     }
 }

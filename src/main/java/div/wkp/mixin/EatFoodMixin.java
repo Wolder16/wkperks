@@ -1,6 +1,7 @@
 package div.wkp.mixin;
 
 import div.wkp.PerkComponents;
+import div.wkp.PerkUtil;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
@@ -21,11 +22,9 @@ public abstract class EatFoodMixin {
             var comp = PerkComponents.PERK_COMPONENT.get(player);
             if (comp.hasPerk("unstoppable")) {
                 comp.addTempJumps(1);
-                player.sendMessage(
-                        net.minecraft.text.Text.literal("+1 временный прыжок! (Запас: " + comp.getTempJumps() + ")")
-                                .formatted(net.minecraft.util.Formatting.GOLD),
-                        true // actionbar
-                );
+                if (!PerkUtil.arePerksEnabled(player)) {
+                    return;
+                }
             }
         }
     }

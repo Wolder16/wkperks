@@ -16,7 +16,7 @@ public class UnstoppablePerk extends AbstractPerk {
     public UnstoppablePerk() {
         super(
                 "unstoppable",
-                Text.literal("Consumptive Reflex").formatted(Formatting.GOLD),
+                Text.literal("Unstoppable Conviction").formatted(Formatting.GOLD),
                 Text.literal("Поедание еды даёт 1 временный прыжок").formatted(Formatting.GRAY),
                 new ItemStack(Items.GOLDEN_APPLE)
         );
