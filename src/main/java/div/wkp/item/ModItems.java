@@ -1,6 +1,8 @@
 package div.wkp.item;
 
 import div.wkp.WKPerks;
+import div.wkp.banner.ModBannerPatterns;
+import net.minecraft.item.BannerPatternItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -19,7 +21,13 @@ public final class ModItems {
             "floppy_disk",
             new Item(new Item.Settings())
     );
-
+    public static final Item RHO_BANNER_PATTERN = register(
+            "rho_banner_pattern",
+            new BannerPatternItem(
+                    ModBannerPatterns.RHO_BANNER_PATTERN_ITEM,
+                    new Item.Settings().maxCount(1)
+            )
+    );
     private static Item register(String id, Item item) {
         return Registry.register(
                 Registries.ITEM,

@@ -2,8 +2,8 @@
 	"format_version": "1.9.0",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "polished_andesite",
-		"particle": "polished_andesite"
+		"0": "wkperks:block/rho_altar",
+		"particle": "wkperks:block/rho_altar"
 	},
 	"elements": [
 		{
@@ -127,9 +127,9 @@
 			"to": [12.001, 13.001, 4.001],
 			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -10]},
 			"faces": {
-				"north": {"uv": [1, 1, 10.33333, 3.15385], "texture": "#0", "cullface": "south"},
-				"east": {"uv": [1, 1, 15, 3.15385], "texture": "#0", "cullface": "south"},
-				"south": {"uv": [1, 1, 10.33333, 3.15385], "texture": "#0", "cullface": "south"},
+				"north": {"uv": [1, 1, 10.33333, 3.15385], "texture": "#0"},
+				"east": {"uv": [1, 1, 15, 3.15385], "texture": "#0"},
+				"south": {"uv": [1, 1, 10.33333, 3.15385], "texture": "#0"},
 				"west": {"uv": [1, 1, 15, 3.15385], "texture": "#0"},
 				"up": {"uv": [0, 0, 16, 4], "texture": "#0"},
 				"down": {"uv": [1, 1, 10.33333, 13.92308], "texture": "#0"}
@@ -196,18 +196,30 @@
 				"up": {"uv": [1, 1, 10.33333, 13.92308], "rotation": 270, "texture": "#0"},
 				"down": {"uv": [4, 3, 13.33333, 15.92308], "rotation": 90, "texture": "#0"}
 			}
+		},
+		{
+			"from": [-0.002, -0.002, -0.002],
+			"to": [16.002, 3.102, 16.002],
+			"faces": {
+				"north": {"uv": [1, 12.9, 15, 16], "texture": "#0"},
+				"east": {"uv": [1, 12.9, 15, 16], "texture": "#0"},
+				"south": {"uv": [1, 12.9, 15, 16], "texture": "#0"},
+				"west": {"uv": [1, 12.9, 15, 16], "texture": "#0"},
+				"up": {"uv": [1, 1, 15, 15], "texture": "#0"},
+				"down": {"uv": [2, 2, 14, 14], "texture": "#0"}
+			}
 		}
 	],
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [39, 0, 0],
+			"rotation": [50, 0, 0],
 			"translation": [0, 2, 0],
-			"scale": [0.4, 0.4, 0.4]
+			"scale": [0.25, 0.25, 0.25]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [39, 0, 0],
+			"rotation": [50, 0, 0],
 			"translation": [0, 2, 0],
-			"scale": [0.4, 0.4, 0.4]
+			"scale": [0.25, 0.25, 0.25]
 		},
 		"firstperson_righthand": {
 			"translation": [0, 2, 0],
@@ -230,8 +242,9 @@
 			"translation": [0, 14.5, 0]
 		},
 		"fixed": {
-			"translation": [0, 0, -0.25],
-			"scale": [0.48, 0.48, 0.48]
+			"rotation": [1, 47, -15],
+			"translation": [0, 1.5, 0],
+			"scale": [0.65, 0.65, 0.65]
 		}
 	},
 	"groups": [
@@ -252,6 +265,7 @@
 			"origin": [0, 0, 0],
 			"color": 0,
 			"children": [13, 14]
-		}
+		},
+		15
 	]
 }

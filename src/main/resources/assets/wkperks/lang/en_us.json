@@ -1,0 +1,13 @@
+{
+  "block.wkperks.rho_altar": "Rho's Altar",
+  "item.wkperks.rho_gift": "Gift for Rho",
+  "item.wkperks.floppy_disk": "Floppy Disk",
+  "item.wkperks.rho_altar": "Rho's Altar",
+  "perk.wkperks.rho_grace": "Rho's Grace",
+  "perk.wkperks.rho_grace.desc": "Your reputation with Rho",
+  "perk.wkperks.speed.desc": "Increases movement speed by 10% per level",
+  "perk.wkperks.double_jump.desc": "Allows extra jumps in mid-air",
+  "perk.wkperks.unstoppable.desc": "Eating food gives 1 temporary mid-air jump",
+  "item.wkperks.rho_banner_pattern": "Banner Pattern",
+  "block.wkperks.banner.rho_symbol": "Rho's Symbol"
+}

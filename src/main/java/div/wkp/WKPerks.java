@@ -1,5 +1,6 @@
 package div.wkp;
 
+
 import div.wkp.block.ModBlocks;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.item.ModItems;
@@ -53,7 +54,6 @@ public final class WKPerks implements ModInitializer {
         ModItems.initialize();
         ModBlocks.initialize();
         ModBlockEntities.initialize();
-
         PerkRegistry.init();
         AltarRegistry.init();
         PayloadTypeRegistry.playC2S().register(DoubleJumpPayload.ID, DoubleJumpPayload.CODEC);

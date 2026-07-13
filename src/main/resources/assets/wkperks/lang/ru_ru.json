@@ -3,5 +3,11 @@
   "item.wkperks.rho_gift": "Подарок для Ро",
   "item.wkperks.floppy_disk": "Дискета",
   "item.wkperks.rho_altar": "Алтарь Ро",
-  "perk.wkperks.rho_grace": "Благосклонность Ро"
+  "perk.wkperks.rho_grace": "Благосклонность Ро",
+  "perk.wkperks.rho_grace.desc": "Репутация у Ро",
+  "perk.wkperks.speed.desc": "Увеличивает скорость передвижения на 10% за уровень",
+  "perk.wkperks.double_jump.desc": "Позволяет совершить прыжок в воздухе",
+  "perk.wkperks.unstoppable.desc": "Еда даёт 1 временный прыжок в воздухе",
+  "item.wkperks.rho_banner_pattern": "Узор знамени",
+  "block.wkperks.banner.rho_symbol": "Символ Ро"
 }

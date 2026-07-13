@@ -2,6 +2,8 @@ package div.wkp.client;
 
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
+import div.wkp.block.ModBlockEntities;
+
 import div.wkp.network.DoubleJumpPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -9,6 +11,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.util.math.Vec3d;
 
 public final class WKPerksClient implements ClientModInitializer {
@@ -25,6 +28,7 @@ public final class WKPerksClient implements ClientModInitializer {
     public void onInitializeClient() {
         registerDoubleJump();
         registerInventoryButton();
+        BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
     }
 
     private void registerDoubleJump() {

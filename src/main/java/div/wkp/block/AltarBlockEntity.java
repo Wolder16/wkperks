@@ -23,7 +23,7 @@ import net.minecraft.world.World;
 import java.util.UUID;
 
 public class AltarBlockEntity extends BlockEntity {
-    private static final int PROCESS_TIME = 100;
+    private static final int PROCESS_TIME = 60;
     private static final int COOLDOWN_TIME = 1200;
 
     private ItemStack stack = ItemStack.EMPTY;
