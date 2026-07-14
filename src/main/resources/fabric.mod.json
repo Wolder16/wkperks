@@ -9,7 +9,7 @@
 	],
 	"contact": {
 		"homepage": "",
-		"sources": "https://github.com/Wolder16/MCWKPerks"
+		"sources": "https://github.com/Wolder16/wkperks"
 	},
 	"license": "MIT",
 	"icon": "assets/wkperks/icon.png",
@@ -22,7 +22,9 @@
 			"div.wkp.client.WKPerksClient"
 		],
         "cardinal-components-entity": [
-          "div.wkp.PerkComponents"
+          "div.wkp.PerkComponents",
+          "div.wkp.ArtifactComponents"
+
         ]
 	},
 	"mixins": [
@@ -42,7 +44,8 @@
 	},
     "custom": {
       "cardinal-components": [
-        "wkperks:perks"
+        "wkperks:perks",
+        "wkperks:artifact_state"
       ]
     }
 }

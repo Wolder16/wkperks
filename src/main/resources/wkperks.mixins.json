@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "EatFoodMixin",
-    "HeavyStrikeDamageMixin"
+    "HeavyStrikeDamageMixin",
+    "PlayerInventorySoulboundMixin"
   ],
   "injectors": {
     "defaultRequire": 1

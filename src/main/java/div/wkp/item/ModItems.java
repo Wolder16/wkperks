@@ -1,6 +1,9 @@
 package div.wkp.item;
 
 import div.wkp.WKPerks;
+import div.wkp.artifact.ArtifactSpearItem;
+import div.wkp.artifact.GravityGloveItem;
+import div.wkp.artifact.TranslocatorItem;
 import div.wkp.banner.ModBannerPatterns;
 import div.wkp.block.ModBlocks;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
@@ -53,6 +56,21 @@ public final class ModItems {
                     new Item.Settings().maxCount(1)
             )
     );
+
+    public static final Item GRAVITY_GLOVE = register(
+            "gravity_glove",
+            new GravityGloveItem(new Item.Settings())
+    );
+
+    public static final Item TRANSLOCATOR = register(
+            "translocator",
+            new TranslocatorItem(new Item.Settings())
+    );
+
+    public static final Item ARTIFACT_SPEAR = register(
+            "artifact_spear",
+            new ArtifactSpearItem(new Item.Settings())
+    );
     private static Item register(String id, Item item) {
         return Registry.register(
                 Registries.ITEM,
@@ -71,6 +89,9 @@ public final class ModItems {
         ItemGroupEvents.modifyEntriesEvent(WKPERKS_ITEM_GROUP_KEY).register(entries -> {
             entries.add(ModBlocks.TERMINAL);
             entries.add(ModBlocks.RHO_ALTAR);
+            entries.add(GRAVITY_GLOVE);
+            entries.add(TRANSLOCATOR);
+            entries.add(ARTIFACT_SPEAR);
             entries.add(FLOPPY_DISK);
             entries.add(GOLD_ROACH);
             entries.add(RHO_GIFT);

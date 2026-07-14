@@ -2,6 +2,7 @@
 package div.wkp;
 
 
+import div.wkp.artifact.ArtifactUtil;
 import div.wkp.block.ModBlocks;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.config.WKPerksConfig;
@@ -19,6 +20,7 @@ import div.wkp.perk.perks.PortableBankPerk;
 import div.wkp.perk.perks.ProfitMotivePerk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -161,6 +163,10 @@ public final class WKPerks implements ModInitializer {
             LAST_GAMEMODE.remove(playerUuid);
             ConsumptiveReflexPerk.clearTracking(playerUuid);
             ProfitMotivePerk.clearTracking(playerUuid);
+        });
+
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+            ArtifactUtil.restoreSoulboundArtifacts(newPlayer);
         });
         registerCommands();
     }
