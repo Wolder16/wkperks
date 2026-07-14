@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "upper=false": { "model": "wkperks:block/terminal_bottom" },
+    "upper=true":  { "model": "wkperks:block/terminal_top" }
+  }
+}

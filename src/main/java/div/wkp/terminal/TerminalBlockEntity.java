@@ -5,6 +5,7 @@ import div.wkp.block.ModBlockEntities;
 import div.wkp.component.PerkComponent;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
+import div.wkp.perk.perks.RhoGracePerk;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -29,20 +30,20 @@ public class TerminalBlockEntity
         extends BlockEntity
         implements NamedScreenHandlerFactory {
 
-    private final Map<UUID, PlayerTerminalData> playerData =
-            new HashMap<>();
+    private static final int OFFER_COUNT = 2;
 
-    public TerminalBlockEntity(
-            BlockPos pos,
-            BlockState state
-    ) {
+    private final Map<UUID, PlayerTerminalData> playerData = new HashMap<>();
+
+    public TerminalBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.TERMINAL, pos, state);
     }
 
-    // =====================================================================
-    // Открытие интерфейса
-    // =====================================================================
+    @Override
+    public Text getDisplayName() {
+        return Text.literal("QuietOS Terminal");
+    }
 
+    @Nullable
     @Override
     public ScreenHandler createMenu(
             int syncId,
@@ -62,18 +63,12 @@ public class TerminalBlockEntity
         );
     }
 
-    @Override
-    public Text getDisplayName() {
-        return Text.literal("QuietOS Terminal");
-    }
-
     // =====================================================================
-    // Рероллы
+    // Rerolls
     // =====================================================================
 
     public void addRerollCharge(UUID playerUuid) {
-        PlayerTerminalData data =
-                getOrCreateData(playerUuid);
+        PlayerTerminalData data = getOrCreateData(playerUuid);
 
         data.rerollCharges++;
 
@@ -86,17 +81,15 @@ public class TerminalBlockEntity
     }
 
     public boolean reroll(ServerPlayerEntity player) {
-        PlayerTerminalData data =
-                getOrCreateData(player.getUuid());
+        PlayerTerminalData data = getOrCreateData(player.getUuid());
 
         if (data.rerollCharges <= 0) {
             return false;
         }
 
         data.rerollCharges--;
-
-        data.currentOffers =
-                generateOffers(player);
+        data.currentOffers = generateOffers(player);
+        data.purchasedSlot = -1;
 
         markDirty();
         updateListeners();
@@ -105,59 +98,55 @@ public class TerminalBlockEntity
     }
 
     // =====================================================================
-    // Покупка перка
+    // Purchase
     // =====================================================================
 
-    public boolean purchasePerk(
-            ServerPlayerEntity player,
-            int offerSlot
-    ) {
+    public boolean purchasePerk(ServerPlayerEntity player, int offerSlot) {
         ensureOffers(player);
 
-        PlayerTerminalData data =
-                getOrCreateData(player.getUuid());
+        PlayerTerminalData data = getOrCreateData(player.getUuid());
 
-        if (offerSlot < 0
-                || offerSlot >= data.currentOffers.size()) {
+        if (data.purchasedSlot != -1) {
             return false;
         }
 
-        String perkId =
-                data.currentOffers.get(offerSlot);
+        if (offerSlot < 0 || offerSlot >= data.currentOffers.size()) {
+            return false;
+        }
 
-        Perk perk =
-                PerkRegistry.get(perkId);
+        String perkId = data.currentOffers.get(offerSlot);
+        Perk perk = PerkRegistry.get(perkId);
 
         if (perk == null) {
             return false;
         }
 
-        PerkComponent component =
-                PerkComponents.PERK_COMPONENT.get(player);
-
-        int currentLevel =
-                component.getPerkLevel(perkId);
-
-        if (currentLevel >= perk.getMaxLevel()) {
+        if (isTerminalExcluded(perkId)) {
             return false;
         }
 
-        // Покупка бесплатная.
+        PerkComponent component = PerkComponents.PERK_COMPONENT.get(player);
+
+        int oldLevel = component.getPerkLevel(perkId);
+
+        if (oldLevel >= perk.getMaxLevel()) {
+            return false;
+        }
+
         component.changePerkLevel(perkId, 1);
 
-        int levelAfter =
-                component.getPerkLevel(perkId);
+        int newLevel = component.getPerkLevel(perkId);
 
-        if (levelAfter <= currentLevel) {
+        if (newLevel <= oldLevel) {
             return false;
         }
 
         /*
-         * Убираем купленный перк из текущих предложений.
-         * Затем добавляем другой доступный перк, если он существует.
+         * ВАЖНО:
+         * После покупки НЕ обновляем offers.
+         * Просто запоминаем, какой слот куплен.
          */
-        data.currentOffers.remove(offerSlot);
-        ensureOffers(player);
+        data.purchasedSlot = offerSlot;
 
         markDirty();
         updateListeners();
@@ -166,23 +155,17 @@ public class TerminalBlockEntity
     }
 
     // =====================================================================
-    // Работа с предложениями
+    // Properties for ScreenHandler
     // =====================================================================
 
-    public int getOfferIndex(
-            UUID playerUuid,
-            int offerSlot
-    ) {
-        PlayerTerminalData data =
-                getOrCreateData(playerUuid);
+    public int getOfferIndex(UUID playerUuid, int offerSlot) {
+        PlayerTerminalData data = getOrCreateData(playerUuid);
 
-        if (offerSlot < 0
-                || offerSlot >= data.currentOffers.size()) {
+        if (offerSlot < 0 || offerSlot >= data.currentOffers.size()) {
             return -1;
         }
 
-        String offerId =
-                data.currentOffers.get(offerSlot);
+        String offerId = data.currentOffers.get(offerSlot);
 
         int index = 0;
 
@@ -197,35 +180,53 @@ public class TerminalBlockEntity
         return -1;
     }
 
-    /**
-     * Проверяет текущий список и добавляет недостающие предложения.
-     */
-    private void ensureOffers(ServerPlayerEntity player) {
-        PlayerTerminalData data =
-                getOrCreateData(player.getUuid());
+    public int getPurchasedSlot(UUID playerUuid) {
+        return getOrCreateData(playerUuid).purchasedSlot;
+    }
 
-        PerkComponent component =
-                PerkComponents.PERK_COMPONENT.get(player);
+    // =====================================================================
+    // Offer generation
+    // =====================================================================
+
+    private void ensureOffers(ServerPlayerEntity player) {
+        PlayerTerminalData data = getOrCreateData(player.getUuid());
+
+        /*
+         * Если игрок уже купил один из текущих перков,
+         * НЕ трогаем список вообще до ручного REFRESH.
+         */
+        if (data.purchasedSlot != -1) {
+            return;
+        }
+
+        PerkComponent component = PerkComponents.PERK_COMPONENT.get(player);
 
         data.currentOffers.removeIf(id -> {
             Perk perk = PerkRegistry.get(id);
-
-            return perk == null
-                    || component.getPerkLevel(id)
-                    >= perk.getMaxLevel();
+            return !canOfferPerk(perk, component);
         });
+
+        fillOffers(data, component);
+
+        markDirty();
+    }
+
+    private void fillOffers(
+            PlayerTerminalData data,
+            PerkComponent component
+    ) {
+        if (data.currentOffers.size() >= OFFER_COUNT) {
+            return;
+        }
 
         List<Perk> available = new ArrayList<>();
 
         for (Perk perk : PerkRegistry.getAll()) {
-            boolean alreadyOffered =
-                    data.currentOffers.contains(perk.getId());
+            if (data.currentOffers.contains(perk.getId())) {
+                continue;
+            }
 
-            boolean notMaxed =
-                    component.getPerkLevel(perk.getId())
-                            < perk.getMaxLevel();
-
-            if (!alreadyOffered && notMaxed) {
+            if (canOfferPerk(perk, component)) {
                 available.add(perk);
             }
         }
@@ -233,7 +234,7 @@ public class TerminalBlockEntity
         Collections.shuffle(available);
 
         for (Perk perk : available) {
-            if (data.currentOffers.size() >= 2) {
+            if (data.currentOffers.size() >= OFFER_COUNT) {
                 break;
             }
 
@@ -241,32 +242,23 @@ public class TerminalBlockEntity
         }
     }
 
-    /**
-     * Генерирует полностью новый ассортимент.
-     */
-    private List<String> generateOffers(
-            ServerPlayerEntity player
-    ) {
-        PerkComponent component =
-                PerkComponents.PERK_COMPONENT.get(player);
+    private List<String> generateOffers(ServerPlayerEntity player) {
+        PerkComponent component = PerkComponents.PERK_COMPONENT.get(player);
 
-        List<Perk> available =
-                new ArrayList<>();
+        List<Perk> available = new ArrayList<>();
 
         for (Perk perk : PerkRegistry.getAll()) {
-            if (component.getPerkLevel(perk.getId())
-                    < perk.getMaxLevel()) {
+            if (canOfferPerk(perk, component)) {
                 available.add(perk);
             }
         }
 
         Collections.shuffle(available);
 
-        List<String> result =
-                new ArrayList<>();
+        List<String> result = new ArrayList<>();
 
         for (Perk perk : available) {
-            if (result.size() >= 2) {
+            if (result.size() >= OFFER_COUNT) {
                 break;
             }
 
@@ -276,9 +268,26 @@ public class TerminalBlockEntity
         return result;
     }
 
-    private PlayerTerminalData getOrCreateData(
-            UUID playerUuid
+    private static boolean canOfferPerk(
+            @Nullable Perk perk,
+            PerkComponent component
     ) {
+        if (perk == null) {
+            return false;
+        }
+
+        if (isTerminalExcluded(perk.getId())) {
+            return false;
+        }
+
+        return component.getPerkLevel(perk.getId()) < perk.getMaxLevel();
+    }
+
+    private static boolean isTerminalExcluded(String perkId) {
+        return RhoGracePerk.ID.equals(perkId);
+    }
+
+    private PlayerTerminalData getOrCreateData(UUID playerUuid) {
         return playerData.computeIfAbsent(
                 playerUuid,
                 uuid -> new PlayerTerminalData()
@@ -296,14 +305,10 @@ public class TerminalBlockEntity
     ) {
         super.writeNbt(nbt, lookup);
 
-        NbtCompound playersTag =
-                new NbtCompound();
+        NbtCompound playersTag = new NbtCompound();
 
-        for (Map.Entry<UUID, PlayerTerminalData> entry
-                : playerData.entrySet()) {
-
-            NbtCompound playerTag =
-                    new NbtCompound();
+        for (Map.Entry<UUID, PlayerTerminalData> entry : playerData.entrySet()) {
+            NbtCompound playerTag = new NbtCompound();
 
             entry.getValue().writeNbt(playerTag);
 
@@ -325,24 +330,18 @@ public class TerminalBlockEntity
 
         playerData.clear();
 
-        NbtCompound playersTag =
-                nbt.getCompound("PlayerData");
+        NbtCompound playersTag = nbt.getCompound("PlayerData");
 
         for (String uuidString : playersTag.getKeys()) {
             try {
-                UUID uuid =
-                        UUID.fromString(uuidString);
+                UUID uuid = UUID.fromString(uuidString);
 
-                PlayerTerminalData data =
-                        new PlayerTerminalData();
-
-                data.readNbt(
-                        playersTag.getCompound(uuidString)
-                );
+                PlayerTerminalData data = new PlayerTerminalData();
+                data.readNbt(playersTag.getCompound(uuidString));
 
                 playerData.put(uuid, data);
             } catch (IllegalArgumentException ignored) {
-                // Игнорируем повреждённую запись UUID.
+                // повреждённая UUID-запись игнорируется
             }
         }
     }
@@ -361,18 +360,25 @@ public class TerminalBlockEntity
     }
 
     // =====================================================================
-    // Данные одного игрока
+    // Player-specific terminal data
     // =====================================================================
 
     private static class PlayerTerminalData {
         private int rerollCharges = 0;
         private List<String> currentOffers = new ArrayList<>();
 
+        /*
+         * -1 = ещё ничего не куплено
+         *  0 = куплен левый слот
+         *  1 = куплен правый слот
+         */
+        private int purchasedSlot = -1;
+
         private void writeNbt(NbtCompound nbt) {
             nbt.putInt("Rerolls", rerollCharges);
+            nbt.putInt("PurchasedSlot", purchasedSlot);
 
-            NbtCompound offersTag =
-                    new NbtCompound();
+            NbtCompound offersTag = new NbtCompound();
 
             for (int i = 0; i < currentOffers.size(); i++) {
                 offersTag.putString(
@@ -385,17 +391,24 @@ public class TerminalBlockEntity
         }
 
         private void readNbt(NbtCompound nbt) {
-            rerollCharges =
-                    nbt.getInt("Rerolls");
+            rerollCharges = nbt.getInt("Rerolls");
+
+            if (nbt.contains("PurchasedSlot")) {
+                purchasedSlot = nbt.getInt("PurchasedSlot");
+            } else {
+                purchasedSlot = -1;
+            }
+
+            if (purchasedSlot < -1 || purchasedSlot > 1) {
+                purchasedSlot = -1;
+            }
 
             currentOffers.clear();
 
-            NbtCompound offersTag =
-                    nbt.getCompound("Offers");
+            NbtCompound offersTag = nbt.getCompound("Offers");
 
-            for (int i = 0; i < 2; i++) {
-                String id =
-                        offersTag.getString("Offer" + i);
+            for (int i = 0; i < OFFER_COUNT; i++) {
+                String id = offersTag.getString("Offer" + i);
 
                 if (!id.isEmpty()) {
                     currentOffers.add(id);

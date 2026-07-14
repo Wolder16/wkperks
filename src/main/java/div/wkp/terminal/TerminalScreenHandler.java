@@ -5,15 +5,12 @@ import div.wkp.perk.PerkRegistry;
 import div.wkp.screen.ModScreenHandlers;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -22,21 +19,20 @@ public class TerminalScreenHandler extends ScreenHandler {
     public static final int BUY_OFFER_1 = 1;
     public static final int REROLL_BUTTON = 2;
 
-    /**
-     * Индексы PropertyDelegate:
-     *
-     * 0 — индекс первого предложенного перка
-     * 1 — индекс второго предложенного перка
-     * 2 — количество рероллов
+    /*
+     * 0 = индекс первого перка в PerkRegistry
+     * 1 = индекс второго перка в PerkRegistry
+     * 2 = количество reroll charges
+     * 3 = purchased slot:
+     *     -1 = ничего не куплено
+     *      0 = куплен левый слот
+     *      1 = куплен правый слот
      */
-    private static final int PROPERTY_COUNT = 3;
+    private static final int PROPERTY_COUNT = 4;
 
     private final TerminalBlockEntity terminal;
     private final PropertyDelegate properties;
 
-    /**
-     * Серверный конструктор.
-     */
     public TerminalScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
@@ -53,10 +49,6 @@ public class TerminalScreenHandler extends ScreenHandler {
         );
     }
 
-    /**
-     * Клиентский конструктор.
-     * Используется ScreenHandlerType.
-     */
     public TerminalScreenHandler(
             int syncId,
             PlayerInventory playerInventory
@@ -79,14 +71,10 @@ public class TerminalScreenHandler extends ScreenHandler {
 
         this.terminal = terminal;
         this.properties = properties;
-        UUID playerUuid = playerInventory.player.getUuid();
 
         this.addProperties(properties);
     }
 
-    /**
-     * Возвращает перк, отображаемый в указанной карточке.
-     */
     public Perk getOffer(int slot) {
         if (slot < 0 || slot > 1) {
             return null;
@@ -105,9 +93,10 @@ public class TerminalScreenHandler extends ScreenHandler {
         return properties.get(2);
     }
 
-    /**
-     * Получает перк по его индексу в PerkRegistry.
-     */
+    public int getPurchasedSlot() {
+        return properties.get(3);
+    }
+
     private static Perk getPerkByIndex(int index) {
         int currentIndex = 0;
 
@@ -122,9 +111,6 @@ public class TerminalScreenHandler extends ScreenHandler {
         return null;
     }
 
-    /**
-     * Серверная обработка нажатий кнопок.
-     */
     @Override
     public boolean onButtonClick(PlayerEntity player, int id) {
         if (terminal == null) {
@@ -154,12 +140,8 @@ public class TerminalScreenHandler extends ScreenHandler {
         return changed;
     }
 
-    /**
-     * Проверка, что игрок всё ещё находится рядом с терминалом.
-     */
     @Override
     public boolean canUse(PlayerEntity player) {
-        // На клиенте terminal отсутствует.
         if (terminal == null) {
             return true;
         }
@@ -168,7 +150,8 @@ public class TerminalScreenHandler extends ScreenHandler {
             return false;
         }
 
-        if (Objects.requireNonNull(terminal.getWorld()).getBlockEntity(terminal.getPos()) != terminal) {
+        if (Objects.requireNonNull(terminal.getWorld())
+                .getBlockEntity(terminal.getPos()) != terminal) {
             return false;
         }
 
@@ -177,36 +160,34 @@ public class TerminalScreenHandler extends ScreenHandler {
         return player.squaredDistanceTo(terminalCenter) <= 64.0D;
     }
 
-    /**
-     * В терминале нет слотов инвентаря.
-     */
     @Override
     public ItemStack quickMove(PlayerEntity player, int slot) {
         return ItemStack.EMPTY;
     }
 
-    /**
-         * PropertyDelegate для серверной стороны.
-         */
-        private record TerminalPropertyDelegate(TerminalBlockEntity terminal, UUID playerUuid) implements PropertyDelegate {
+    private record TerminalPropertyDelegate(
+            TerminalBlockEntity terminal,
+            UUID playerUuid
+    ) implements PropertyDelegate {
 
         @Override
-            public int get(int index) {
-                return switch (index) {
-                    case 0, 1 -> terminal.getOfferIndex(playerUuid, index);
-                    case 2 -> terminal.getRerollCharges(playerUuid);
-                    default -> 0;
-                };
-            }
-
-            @Override
-            public void set(int index, int value) {
-                // Значения изменяются только сервером.
-            }
-
-            @Override
-            public int size() {
-                return PROPERTY_COUNT;
-            }
+        public int get(int index) {
+            return switch (index) {
+                case 0, 1 -> terminal.getOfferIndex(playerUuid, index);
+                case 2 -> terminal.getRerollCharges(playerUuid);
+                case 3 -> terminal.getPurchasedSlot(playerUuid);
+                default -> 0;
+            };
         }
+
+        @Override
+        public void set(int index, int value) {
+            // Сервер сам управляет значениями.
+        }
+
+        @Override
+        public int size() {
+            return PROPERTY_COUNT;
+        }
+    }
 }
