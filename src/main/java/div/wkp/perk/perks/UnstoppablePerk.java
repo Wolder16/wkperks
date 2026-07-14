@@ -33,7 +33,11 @@ public class UnstoppablePerk extends AbstractPerk {
     }
 
     @Override
-    public List<Text> getExtraTooltip(PerkComponent component, int level) {
+    public List<Text> getExtraTooltip(
+            PlayerEntity player,
+            PerkComponent component,
+            int level
+    ) {
         List<Text> lines = new ArrayList<>();
         int stored = component.getTempJumps();
         lines.add(Text.literal("Запас прыжков: " + stored)

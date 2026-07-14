@@ -16,6 +16,7 @@ import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
 import div.wkp.perk.perks.ConsumptiveReflexPerk;
 import div.wkp.perk.perks.PortableBankPerk;
+import div.wkp.perk.perks.ProfitMotivePerk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -151,6 +152,7 @@ public final class WKPerks implements ModInitializer {
                 }
 
                 ConsumptiveReflexPerk.tick(player);
+                ProfitMotivePerk.tick(player);
             }
 
         });
@@ -158,6 +160,7 @@ public final class WKPerks implements ModInitializer {
             UUID playerUuid = handler.player.getUuid();
             LAST_GAMEMODE.remove(playerUuid);
             ConsumptiveReflexPerk.clearTracking(playerUuid);
+            ProfitMotivePerk.clearTracking(playerUuid);
         });
         registerCommands();
     }

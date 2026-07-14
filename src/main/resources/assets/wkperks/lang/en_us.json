@@ -9,5 +9,6 @@
   "perk.wkperks.double_jump.desc": "Allows extra jumps in mid-air",
   "perk.wkperks.unstoppable.desc": "Eating food gives 1 temporary mid-air jump",
   "item.wkperks.rho_banner_pattern": "Banner Pattern",
-  "block.wkperks.banner.rho_symbol": "Rho's Symbol"
+  "block.wkperks.banner.rho_symbol": "Rho's Symbol",
+  "itemGroup.wkperks.main": "WKPerks"
 }

@@ -2,6 +2,7 @@ package div.wkp.perk.perks;
 
 import div.wkp.component.PerkComponent;
 import div.wkp.perk.AbstractPerk;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
@@ -26,7 +27,11 @@ public class RhoGracePerk extends AbstractPerk {
     }
 
     @Override
-    public List<Text> getExtraTooltip(PerkComponent component, int level) {
+    public List<Text> getExtraTooltip(
+            PlayerEntity player,
+            PerkComponent component,
+            int level
+    ) {
         List<Text> tooltip = new ArrayList<>();
 
         tooltip.add(

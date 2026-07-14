@@ -20,7 +20,11 @@ public interface Perk {
      * Дополнительные строки подсказки, зависящие от состояния игрока.
      * Вызывается GUI при отрисовке tooltip.
      */
-    default List<Text> getExtraTooltip(PerkComponent component, int level) {
+    default List<Text> getExtraTooltip(
+            PlayerEntity player,
+            PerkComponent component,
+            int level
+    ) {
         return List.of();
     }
 }

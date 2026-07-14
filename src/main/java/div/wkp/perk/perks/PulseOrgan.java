@@ -11,7 +11,7 @@ public class PulseOrgan extends AbstractPerk {
     public PulseOrgan() {
         super(
                 "double_jump",
-                Text.literal("Двойной прыжок").formatted(Formatting.GREEN),
+                Text.literal("Pulse Organ").formatted(Formatting.GREEN),
                 Text.literal("Позволяет прыгать дополнительно в воздухе").formatted(Formatting.GRAY),
                 new ItemStack(Items.FEATHER),
                 5 // максимум 5 уровней = 5 доп. прыжков

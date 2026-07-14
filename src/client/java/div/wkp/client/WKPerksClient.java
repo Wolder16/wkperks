@@ -3,6 +3,7 @@ package div.wkp.client;
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
 import div.wkp.block.ModBlockEntities;
+import div.wkp.client.mixin.HandledScreenAccessor;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
 import div.wkp.perk.perks.PortableBankPerk;
@@ -22,10 +23,6 @@ public final class WKPerksClient implements ClientModInitializer {
     private static int tempJumpsUsed = 0;
     private static boolean wasOnGround = true;
     private static boolean jumpKeyWasDown = false;
-
-    // Размеры GUI инвентаря
-    private static final int INV_WIDTH = 176;
-    private static final int INV_HEIGHT = 166;
 
     @Override
     public void onInitializeClient() {
@@ -90,41 +87,49 @@ public final class WKPerksClient implements ClientModInitializer {
                 return;
             }
 
-            if (client.player == null) {
-                return;
-            }
+            HandledScreenAccessor accessor =
+                    (HandledScreenAccessor) inventoryScreen;
 
-            // Позиция GUI инвентаря
-            int guiLeft = (scaledWidth - INV_WIDTH) / 2;
-            int guiTop = (scaledHeight - INV_HEIGHT) / 2;
-
-            // Значок-кнопка справа от модели персонажа (как Curios)
-            // Модель игрока находится примерно в левой части GUI (x: 26-75)
-            int perkButtonX = guiLeft + 63;
-            int perkButtonY = guiTop + 8;
-
-            Screens.getButtons(screen).add(
-                    new PerkIconButton(perkButtonX, perkButtonY, button -> {
-                        client.setScreen(new PerkListScreen(inventoryScreen));
-                    })
+            PortableBankButton bankButton = new PortableBankButton(
+                    accessor.wkperks$getX() + 128,
+                    accessor.wkperks$getY() + 61,
+                    button -> ClientPlayNetworking.send(
+                            new OpenPortableBankPayload()
+                    )
             );
 
-            if (!PerkComponents.PERK_COMPONENT
+            boolean hasPortableBank = client.player != null
+                    && PerkComponents.PERK_COMPONENT
                     .get(client.player)
-                    .hasPerk(PortableBankPerk.ID)) {
-                return;
-            }
+                    .hasPerk(PortableBankPerk.ID);
 
-            // Ванильная кнопка книги рецептов стоит примерно на x + 104, y + 61.
-            // Ставим Portable Bank сразу справа от неё.
-            int bankButtonX = guiLeft + 124;
-            int bankButtonY = guiTop + 61;
+            bankButton.visible = hasPortableBank;
+            bankButton.active = hasPortableBank;
 
-            Screens.getButtons(screen).add(
-                    new PortableBankButton(bankButtonX, bankButtonY, button -> {
-                        ClientPlayNetworking.send(new OpenPortableBankPayload());
-                    })
-            );
+            Screens.getButtons(screen).add(bankButton);
+
+            ScreenEvents.afterRender(screen).register((currentScreen, context, mouseX, mouseY, tickDelta) -> {
+                if (client.player == null) {
+                    return;
+                }
+
+                HandledScreenAccessor currentAccessor =
+                        (HandledScreenAccessor) currentScreen;
+
+                bankButton.setX(currentAccessor.wkperks$getX() + 128);
+                bankButton.setY(currentAccessor.wkperks$getY() + 61);
+
+
+                bankButton.visible = hasPortableBank;
+                bankButton.active = hasPortableBank;
+
+                PerkOverlayRenderer.render(
+                        inventoryScreen,
+                        context,
+                        mouseX,
+                        mouseY
+                );
+            });
         });
     }
 }

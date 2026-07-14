@@ -9,5 +9,6 @@
   "perk.wkperks.double_jump.desc": "Позволяет совершить прыжок в воздухе",
   "perk.wkperks.unstoppable.desc": "Еда даёт 1 временный прыжок в воздухе",
   "item.wkperks.rho_banner_pattern": "Узор знамени",
-  "block.wkperks.banner.rho_symbol": "Символ Ро"
+  "block.wkperks.banner.rho_symbol": "Символ Ро",
+  "itemGroup.wkperks.main": "WKPerks"
 }

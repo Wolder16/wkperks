@@ -170,7 +170,11 @@ public class PerkListScreen extends Screen {
                     px + 28, descY + 18, 0xFFAAAAAA, false);
 
             // Доп. строки (например, запас прыжков)
-            List<Text> extra = display.getExtraTooltip(comp, comp.getPerkLevel(display.getId()));
+            List<Text> extra = display.getExtraTooltip(
+                    this.client.player,
+                    comp,
+                    comp.getPerkLevel(display.getId())
+            );
             int ey = descY + 30;
             for (Text line : extra) {
                 context.drawText(this.textRenderer, line, px + 28, ey, 0xFFFFFFFF, false);

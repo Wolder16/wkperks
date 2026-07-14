@@ -677,6 +677,7 @@ public class TerminalScreen extends HandledScreen<TerminalScreenHandler> {
 
             tooltip.addAll(
                     perk.getExtraTooltip(
+                            client.player,
                             component,
                             component.getPerkLevel(perk.getId())
                     )
