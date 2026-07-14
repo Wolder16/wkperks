@@ -1,6 +1,7 @@
 package div.wkp.block;
 
 import div.wkp.WKPerks;
+import div.wkp.terminal.TerminalBlock;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -18,6 +19,14 @@ public final class ModBlocks {
             new AltarBlock(
                     AbstractBlock.Settings.copy(Blocks.IRON_BLOCK)
                             .strength(4.0F)
+                            .requiresTool()
+            )
+    );
+    public static final Block TERMINAL = registerBlock(
+            "terminal",
+            new TerminalBlock(
+                    AbstractBlock.Settings.copy(Blocks.IRON_BLOCK)
+                            .strength(3.0F)
                             .requiresTool()
             )
     );

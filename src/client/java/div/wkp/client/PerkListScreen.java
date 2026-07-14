@@ -13,6 +13,7 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class PerkListScreen extends Screen {
     private final Screen parent;
@@ -50,7 +51,7 @@ public class PerkListScreen extends Screen {
     protected void init() {
         // Собираем список перков игрока
         ownedPerks.clear();
-        PerkComponent comp = PerkComponents.PERK_COMPONENT.get(this.client.player);
+        PerkComponent comp = PerkComponents.PERK_COMPONENT.get(Objects.requireNonNull(Objects.requireNonNull(this.client).player));
         for (String id : comp.getPerks().keySet()) {
             Perk perk = PerkRegistry.get(id);
             if (perk != null) ownedPerks.add(perk);
@@ -86,7 +87,7 @@ public class PerkListScreen extends Screen {
         // Линия под заголовком
         context.fill(px + 12, py + 30, px + PANEL_W - 12, py + 31, COL_BORDER_D);
 
-        PerkComponent comp = PerkComponents.PERK_COMPONENT.get(this.client.player);
+        PerkComponent comp = PerkComponents.PERK_COMPONENT.get(Objects.requireNonNull(Objects.requireNonNull(this.client).player));
 
         if (ownedPerks.isEmpty()) {
             context.drawCenteredTextWithShadow(this.textRenderer,

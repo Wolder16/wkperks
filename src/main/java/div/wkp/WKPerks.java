@@ -7,8 +7,7 @@ import div.wkp.item.ModItems;
 import div.wkp.altar.AltarRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import div.wkp.altar.AltarRegistry;
-import div.wkp.item.ModItems;
+import div.wkp.screen.ModScreenHandlers;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
@@ -50,9 +49,9 @@ public final class WKPerks implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("WKPerks: инициализация...");
-        PerkRegistry.init();
         ModItems.initialize();
         ModBlocks.initialize();
+        ModScreenHandlers.initialize();
         ModBlockEntities.initialize();
         PerkRegistry.init();
         AltarRegistry.init();

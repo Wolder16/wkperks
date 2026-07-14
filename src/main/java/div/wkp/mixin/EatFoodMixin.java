@@ -23,7 +23,6 @@ public abstract class EatFoodMixin {
             if (comp.hasPerk("unstoppable")) {
                 comp.addTempJumps(1);
                 if (!PerkUtil.arePerksEnabled(player)) {
-                    return;
                 }
             }
         }

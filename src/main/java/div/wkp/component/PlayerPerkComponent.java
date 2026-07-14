@@ -127,7 +127,7 @@ public class PlayerPerkComponent implements PerkComponent {
             return;
         }
 
-        if (newLevel <= 0) {
+        if (newLevel == 0) {
             perks.remove(perkId);
         } else {
             perks.put(perkId, newLevel);
