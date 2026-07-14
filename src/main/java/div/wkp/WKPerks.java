@@ -1,8 +1,10 @@
+
 package div.wkp;
 
 
 import div.wkp.block.ModBlocks;
 import div.wkp.block.ModBlockEntities;
+import div.wkp.config.WKPerksConfig;
 import div.wkp.item.ModItems;
 import div.wkp.altar.AltarRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -11,6 +13,7 @@ import div.wkp.screen.ModScreenHandlers;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
+import div.wkp.perk.perks.ConsumptiveReflexPerk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -49,6 +52,7 @@ public final class WKPerks implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("WKPerks: инициализация...");
+        WKPerksConfig.load();
         ModItems.initialize();
         ModBlocks.initialize();
         ModScreenHandlers.initialize();
@@ -112,11 +116,15 @@ public final class WKPerks implements ModInitializer {
                 if (previousMode != currentMode) {
                     PerkUtil.refreshPlayer(player);
                 }
+
+                ConsumptiveReflexPerk.tick(player);
             }
 
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            LAST_GAMEMODE.remove(handler.player.getUuid());
+            UUID playerUuid = handler.player.getUuid();
+            LAST_GAMEMODE.remove(playerUuid);
+            ConsumptiveReflexPerk.clearTracking(playerUuid);
         });
         registerCommands();
     }
@@ -177,3 +185,4 @@ public final class WKPerks implements ModInitializer {
         });
     }
 }
+
