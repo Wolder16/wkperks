@@ -11,14 +11,18 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import div.wkp.screen.ModScreenHandlers;
 import div.wkp.network.DoubleJumpPayload;
+import div.wkp.network.OpenPortableBankPayload;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
 import div.wkp.perk.perks.ConsumptiveReflexPerk;
+import div.wkp.perk.perks.PortableBankPerk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -60,6 +64,7 @@ public final class WKPerks implements ModInitializer {
         PerkRegistry.init();
         AltarRegistry.init();
         PayloadTypeRegistry.playC2S().register(DoubleJumpPayload.ID, DoubleJumpPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(OpenPortableBankPayload.ID, OpenPortableBankPayload.CODEC);
 
         // Приём двойного прыжка
         ServerPlayNetworking.registerGlobalReceiver(DoubleJumpPayload.ID, (payload, context) -> {
@@ -89,6 +94,34 @@ public final class WKPerks implements ModInitializer {
                     player.fallDistance = 0.0F;
                     FALL_DAMAGE_IMMUNITY.add(player.getUuid());
                 }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(OpenPortableBankPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                ServerPlayerEntity player = context.player();
+
+                if (!PerkUtil.arePerksEnabled(player)) {
+                    return;
+                }
+
+                if (!PerkComponents.PERK_COMPONENT
+                        .get(player)
+                        .hasPerk(PortableBankPerk.ID)) {
+                    return;
+                }
+
+                player.openHandledScreen(
+                        new SimpleNamedScreenHandlerFactory(
+                                (syncId, inventory, openedPlayer) ->
+                                        GenericContainerScreenHandler.createGeneric9x3(
+                                                syncId,
+                                                inventory,
+                                                openedPlayer.getEnderChestInventory()
+                                        ),
+                                Text.translatable("container.enderchest")
+                        )
+                );
             });
         });
 

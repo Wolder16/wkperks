@@ -19,6 +19,7 @@ public final class PerkRegistry {
         register(new ElasticLimbsPerk());
         register(new HeavyStrikePerk());
         register(new ConsumptiveReflexPerk());
+        register(new PortableBankPerk());
         // >>> Чтобы добавить новый перк — просто добавь строку сюда <<<
     }
 

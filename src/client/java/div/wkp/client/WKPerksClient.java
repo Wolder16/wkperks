@@ -4,6 +4,8 @@ import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.network.DoubleJumpPayload;
+import div.wkp.network.OpenPortableBankPayload;
+import div.wkp.perk.perks.PortableBankPerk;
 import div.wkp.screen.ModScreenHandlers;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -28,7 +30,7 @@ public final class WKPerksClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         registerDoubleJump();
-        registerInventoryButton();
+        registerInventoryButtons();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
         HandledScreens.register(
                 ModScreenHandlers.TERMINAL,
@@ -82,24 +84,47 @@ public final class WKPerksClient implements ClientModInitializer {
         });
     }
 
-    private void registerInventoryButton() {
+    private void registerInventoryButtons() {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof InventoryScreen inventoryScreen) {
-                // Позиция GUI инвентаря
-                int guiLeft = (scaledWidth - INV_WIDTH) / 2;
-                int guiTop = (scaledHeight - INV_HEIGHT) / 2;
-
-                // Значок-кнопка справа от модели персонажа (как Curios)
-                // Модель игрока находится примерно в левой части GUI (x: 26-75)
-                int buttonX = guiLeft + 63; // правее модели
-                int buttonY = guiTop + 8;
-
-                Screens.getButtons(screen).add(
-                        new PerkIconButton(buttonX, buttonY, button -> {
-                            client.setScreen(new PerkListScreen(inventoryScreen));
-                        })
-                );
+            if (!(screen instanceof InventoryScreen inventoryScreen)) {
+                return;
             }
+
+            if (client.player == null) {
+                return;
+            }
+
+            // Позиция GUI инвентаря
+            int guiLeft = (scaledWidth - INV_WIDTH) / 2;
+            int guiTop = (scaledHeight - INV_HEIGHT) / 2;
+
+            // Значок-кнопка справа от модели персонажа (как Curios)
+            // Модель игрока находится примерно в левой части GUI (x: 26-75)
+            int perkButtonX = guiLeft + 63;
+            int perkButtonY = guiTop + 8;
+
+            Screens.getButtons(screen).add(
+                    new PerkIconButton(perkButtonX, perkButtonY, button -> {
+                        client.setScreen(new PerkListScreen(inventoryScreen));
+                    })
+            );
+
+            if (!PerkComponents.PERK_COMPONENT
+                    .get(client.player)
+                    .hasPerk(PortableBankPerk.ID)) {
+                return;
+            }
+
+            // Ванильная кнопка книги рецептов стоит примерно на x + 104, y + 61.
+            // Ставим Portable Bank сразу справа от неё.
+            int bankButtonX = guiLeft + 124;
+            int bankButtonY = guiTop + 61;
+
+            Screens.getButtons(screen).add(
+                    new PortableBankButton(bankButtonX, bankButtonY, button -> {
+                        ClientPlayNetworking.send(new OpenPortableBankPayload());
+                    })
+            );
         });
     }
 }
