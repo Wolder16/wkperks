@@ -12,4 +12,22 @@ public interface ArtifactStateComponent extends Component, AutoSyncedComponent {
     void storeSoulboundArtifact(ItemStack stack);
 
     void clearStoredSoulboundArtifacts();
+
+    boolean isUsingArtifact();
+
+    String getActiveArtifactId();
+
+    net.minecraft.util.Hand getActiveHand();
+
+    int getUseTicks();
+
+    boolean isCharged();
+
+    void startUsingArtifact(String artifactId, net.minecraft.util.Hand hand);
+
+    void tickUsingArtifact();
+
+    void setCharged(boolean charged);
+
+    void stopUsingArtifact();
 }

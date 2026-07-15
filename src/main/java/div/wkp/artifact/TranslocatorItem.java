@@ -1,93 +1,55 @@
 package div.wkp.artifact;
 
-import net.minecraft.entity.LivingEntity;
+import div.wkp.component.ArtifactStateComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.particle.ParticleTypes;
+import net.minecraft.particle.DustParticleEffect;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.joml.Vector3f;
 
 public class TranslocatorItem extends ArtifactItem {
-    private static final int ENERGY_COST = 0;
     private static final double RANGE = 15.0D;
-    private static final int REQUIRED_CHARGE_TICKS = 40;
+    private static final int CHARGE_TICKS = 40;
+    private static final DustParticleEffect TARGET_PARTICLE =
+            new DustParticleEffect(new Vector3f(0.92F, 0.12F, 0.14F), 1.15F);
 
     public TranslocatorItem(Settings settings) {
         super(settings, 0, 0, 200, true);
     }
 
     @Override
-    protected boolean isChargedUse(ItemStack stack) {
-        return true;
-    }
-
-    @Override
-    protected int getRequiredChargeTicks(ItemStack stack, LivingEntity user) {
-        return REQUIRED_CHARGE_TICKS;
-    }
-
-    @Override
-    protected void onChargedUseTick(
-            World world,
-            LivingEntity user,
+    public void onUseReleased(
+            ServerPlayerEntity player,
+            Hand hand,
             ItemStack stack,
-            int usedTicks,
-            int remainingUseTicks
+            ArtifactStateComponent component
     ) {
-        if (!(user instanceof PlayerEntity player)) {
+        if (component.getUseTicks() < CHARGE_TICKS) {
             return;
         }
 
         Vec3d target = findTeleportTarget(player);
 
         if (target == null) {
+            player.sendMessage(
+                    Text.literal("Транслокатор не нашёл точку привязки.")
+                            .formatted(Formatting.RED),
+                    true
+            );
             return;
         }
 
-        spawnTargetParticles(world, target, user.age);
-    }
-
-    @Override
-    protected void onChargedUseReleased(
-            World world,
-            LivingEntity user,
-            ItemStack stack,
-            int usedTicks,
-            int remainingUseTicks
-    ) {
-        if (!(user instanceof PlayerEntity player)) {
-            return;
-        }
-
-        if (!hasReachedRequiredCharge(stack, user, usedTicks)) {
-            return;
-        }
-
-        Vec3d target = findTeleportTarget(player);
-
-        if (target == null) {
-            if (!world.isClient) {
-                player.sendMessage(
-                        Text.literal("Транслокатор не нашёл точку привязки.")
-                                .formatted(Formatting.RED),
-                        true
-                );
-            }
-
-            return;
-        }
-
-        TypedActionResult<ItemStack> result =
-                finishActivation(world, player, stack, ENERGY_COST);
-
-        if (!result.getResult().isAccepted() || world.isClient) {
+        if (!finishActivation(player.getWorld(), player, stack, 0)
+                .getResult()
+                .isAccepted()) {
             return;
         }
 
@@ -95,6 +57,16 @@ public class TranslocatorItem extends ArtifactItem {
         player.requestTeleport(target.x, target.y, target.z);
         player.setVelocity(velocity);
         player.velocityModified = true;
+    }
+
+    public static void spawnClientPreview(PlayerEntity player, int age) {
+        Vec3d target = findTeleportTarget(player);
+
+        if (target == null) {
+            return;
+        }
+
+        spawnTargetParticles(player.getWorld(), target, age);
     }
 
     private static Vec3d findTeleportTarget(PlayerEntity user) {
@@ -114,21 +86,30 @@ public class TranslocatorItem extends ArtifactItem {
     }
 
     private static void spawnTargetParticles(World world, Vec3d center, int age) {
-        if (!world.isClient || age % 2 != 0) {
+        if (!world.isClient) {
             return;
         }
 
-        for (int i = 0; i < 8; i++) {
-            double angle = (Math.PI * 2.0D / 8.0D) * i + age * 0.08D;
-            double x = center.x + Math.cos(angle) * 0.25D;
-            double y = center.y + ((i % 2 == 0) ? 0.18D : 0.02D);
-            double z = center.z + Math.sin(angle) * 0.25D;
+        int points = 24;
+        double radius = 0.33D;
+        double rotation = age * 0.08D;
+        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
 
-            world.addParticle(
-                    ParticleTypes.PORTAL,
-                    x,
-                    y,
-                    z,
+        for (int i = 0; i < points; i++) {
+            double t = (i + 0.5D) / points;
+            double y = 1.0D - 2.0D * t;
+            double horizontalRadius = Math.sqrt(1.0D - y * y);
+            double theta = goldenAngle * i + rotation;
+
+            double x = Math.cos(theta) * horizontalRadius;
+            double z = Math.sin(theta) * horizontalRadius;
+
+            world.addImportantParticle(
+                    TARGET_PARTICLE,
+                    true,
+                    center.x + x * radius,
+                    center.y + y * radius,
+                    center.z + z * radius,
                     0.0D,
                     0.0D,
                     0.0D
@@ -137,12 +118,16 @@ public class TranslocatorItem extends ArtifactItem {
     }
 
     @Override
-    protected TypedActionResult<ItemStack> onArtifactUse(
-            World world,
-            PlayerEntity user,
-            Hand hand,
-            ItemStack stack
+    public void appendTooltip(
+            ItemStack stack,
+            TooltipContext context,
+            java.util.List<Text> tooltip,
+            net.minecraft.item.tooltip.TooltipType type
     ) {
-        return TypedActionResult.pass(stack);
+        tooltip.add(
+                Text.literal("Зажми на 2 секунды и отпусти для телепортации.")
+                        .formatted(Formatting.DARK_AQUA)
+        );
+        super.appendTooltip(stack, context, tooltip, type);
     }
 }

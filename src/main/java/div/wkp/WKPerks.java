@@ -11,6 +11,7 @@ import div.wkp.altar.AltarRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import div.wkp.screen.ModScreenHandlers;
+import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
 import div.wkp.perk.Perk;
@@ -68,6 +69,7 @@ public final class WKPerks implements ModInitializer {
         AltarRegistry.init();
         PayloadTypeRegistry.playC2S().register(DoubleJumpPayload.ID, DoubleJumpPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(OpenPortableBankPayload.ID, OpenPortableBankPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(ArtifactUsePayload.ID, ArtifactUsePayload.CODEC);
 
         // Приём двойного прыжка
         ServerPlayNetworking.registerGlobalReceiver(DoubleJumpPayload.ID, (payload, context) -> {
@@ -128,6 +130,18 @@ public final class WKPerks implements ModInitializer {
             });
         });
 
+        ServerPlayNetworking.registerGlobalReceiver(ArtifactUsePayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                ServerPlayerEntity player = context.player();
+
+                if (payload.action() == ArtifactUsePayload.Action.START) {
+                    ArtifactUtil.startUsingArtifact(player, payload.hand());
+                } else if (payload.action() == ArtifactUsePayload.Action.RELEASE) {
+                    ArtifactUtil.releaseUsingArtifact(player, payload.hand());
+                }
+            });
+        });
+
         // Серверный тик: защита от падения + отслеживание смены режима
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             // Защита от урона от падения
@@ -153,6 +167,7 @@ public final class WKPerks implements ModInitializer {
                     PerkUtil.refreshPlayer(player);
                 }
 
+                ArtifactUtil.tickUsingArtifact(player);
                 ConsumptiveReflexPerk.tick(player);
                 ProfitMotivePerk.tick(player);
             }
@@ -161,6 +176,7 @@ public final class WKPerks implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID playerUuid = handler.player.getUuid();
             LAST_GAMEMODE.remove(playerUuid);
+            ArtifactUtil.cancelUsingArtifact(handler.player);
             ConsumptiveReflexPerk.clearTracking(playerUuid);
             ProfitMotivePerk.clearTracking(playerUuid);
         });

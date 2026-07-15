@@ -14,6 +14,12 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     private final PlayerEntity provider;
     private final List<ItemStack> storedSoulboundArtifacts = new ArrayList<>();
 
+    private boolean usingArtifact = false;
+    private String activeArtifactId = "";
+    private net.minecraft.util.Hand activeHand = net.minecraft.util.Hand.MAIN_HAND;
+    private int useTicks = 0;
+    private boolean charged = false;
+
     public PlayerArtifactStateComponent(PlayerEntity provider) {
         this.provider = provider;
     }
@@ -40,6 +46,61 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     }
 
     @Override
+    public boolean isUsingArtifact() {
+        return usingArtifact;
+    }
+
+    @Override
+    public String getActiveArtifactId() {
+        return activeArtifactId;
+    }
+
+    @Override
+    public net.minecraft.util.Hand getActiveHand() {
+        return activeHand;
+    }
+
+    @Override
+    public int getUseTicks() {
+        return useTicks;
+    }
+
+    @Override
+    public boolean isCharged() {
+        return charged;
+    }
+
+    @Override
+    public void startUsingArtifact(String artifactId, net.minecraft.util.Hand hand) {
+        usingArtifact = true;
+        activeArtifactId = artifactId;
+        activeHand = hand;
+        useTicks = 0;
+        charged = false;
+    }
+
+    @Override
+    public void tickUsingArtifact() {
+        if (usingArtifact) {
+            useTicks++;
+        }
+    }
+
+    @Override
+    public void setCharged(boolean charged) {
+        this.charged = charged;
+    }
+
+    @Override
+    public void stopUsingArtifact() {
+        usingArtifact = false;
+        activeArtifactId = "";
+        activeHand = net.minecraft.util.Hand.MAIN_HAND;
+        useTicks = 0;
+        charged = false;
+    }
+
+    @Override
     public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         NbtList list = new NbtList();
 
@@ -53,6 +114,7 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     @Override
     public void readFromNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         storedSoulboundArtifacts.clear();
+        stopUsingArtifact();
 
         NbtList list = tag.getList("StoredSoulboundArtifacts", 10);
 

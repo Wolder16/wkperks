@@ -1,12 +1,13 @@
 package div.wkp.artifact;
 
+import div.wkp.ArtifactComponents;
+import div.wkp.component.ArtifactStateComponent;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.UseAction;
 import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -79,7 +80,7 @@ public abstract class ArtifactItem extends Item {
     }
 
     public boolean consumeEnergy(ItemStack stack, int amount) {
-        if (amount <= 0) {
+        if (amount <= 0 || maxEnergy <= 0) {
             return true;
         }
 
@@ -109,18 +110,29 @@ public abstract class ArtifactItem extends Item {
             int slot,
             boolean selected
     ) {
-        boolean inUse = entity instanceof LivingEntity livingEntity
-                && livingEntity.isUsingItem()
-                && livingEntity.getActiveItem() == stack;
-
         if (!world.isClient
                 && rechargePerTick > 0
                 && getEnergy(stack) < maxEnergy
-                && !inUse) {
+                && shouldRecharge(stack, entity)) {
             rechargeEnergy(stack, rechargePerTick);
         }
 
         super.inventoryTick(stack, world, entity, slot, selected);
+    }
+
+    protected boolean shouldRecharge(ItemStack stack, Entity entity) {
+        if (!(entity instanceof PlayerEntity player)) {
+            return true;
+        }
+
+        ArtifactStateComponent component =
+                ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player);
+
+        if (!component.isUsingArtifact()) {
+            return true;
+        }
+
+        return player.getStackInHand(component.getActiveHand()) != stack;
     }
 
     @Override
@@ -129,76 +141,49 @@ public abstract class ArtifactItem extends Item {
             PlayerEntity user,
             Hand hand
     ) {
-        ItemStack stack = user.getStackInHand(hand);
-
-        if (cooldownTicks > 0 && user.getItemCooldownManager().isCoolingDown(this)) {
-            return TypedActionResult.fail(stack);
-        }
-
-        if (isChargedUse(stack)) {
-            user.setCurrentHand(hand);
-            return TypedActionResult.consume(stack);
-        }
-
-        return onArtifactUse(world, user, hand, stack);
+        return TypedActionResult.pass(user.getStackInHand(hand));
     }
 
-    @Override
-    public int getMaxUseTime(ItemStack stack, LivingEntity user) {
-        if (isChargedUse(stack)) {
-            return getChargedUseMaxTime(stack, user);
-        }
-
-        return 0;
-    }
-
-    @Override
-    public UseAction getUseAction(ItemStack stack) {
-        if (isChargedUse(stack)) {
-            return getChargedUseAction(stack);
-        }
-
-        return UseAction.NONE;
-    }
-
-    @Override
-    public void usageTick(
-            World world,
-            LivingEntity user,
+    public boolean canStartUsing(
+            ServerPlayerEntity player,
+            Hand hand,
             ItemStack stack,
-            int remainingUseTicks
+            ArtifactStateComponent component
     ) {
-        if (isChargedUse(stack)) {
-            onChargedUseTick(
-                    world,
-                    user,
-                    stack,
-                    getUsedTicks(stack, user, remainingUseTicks),
-                    remainingUseTicks
-            );
-        }
-
-        super.usageTick(world, user, stack, remainingUseTicks);
+        return cooldownTicks <= 0
+                || !player.getItemCooldownManager().isCoolingDown(this);
     }
 
-    @Override
-    public void onStoppedUsing(
+    public void onUseStarted(
+            ServerPlayerEntity player,
+            Hand hand,
             ItemStack stack,
-            World world,
-            LivingEntity user,
-            int remainingUseTicks
+            ArtifactStateComponent component
     ) {
-        if (isChargedUse(stack)) {
-            onChargedUseReleased(
-                    world,
-                    user,
-                    stack,
-                    getUsedTicks(stack, user, remainingUseTicks),
-                    remainingUseTicks
-            );
-        }
+    }
 
-        super.onStoppedUsing(stack, world, user, remainingUseTicks);
+    public void onUseTick(
+            ServerPlayerEntity player,
+            Hand hand,
+            ItemStack stack,
+            ArtifactStateComponent component
+    ) {
+    }
+
+    public void onUseReleased(
+            ServerPlayerEntity player,
+            Hand hand,
+            ItemStack stack,
+            ArtifactStateComponent component
+    ) {
+    }
+
+    public void onUseCancelled(
+            ServerPlayerEntity player,
+            Hand hand,
+            ItemStack stack,
+            ArtifactStateComponent component
+    ) {
     }
 
     protected TypedActionResult<ItemStack> finishActivation(
@@ -225,63 +210,6 @@ public abstract class ArtifactItem extends Item {
         return TypedActionResult.success(stack, world.isClient());
     }
 
-    protected boolean isChargedUse(ItemStack stack) {
-        return false;
-    }
-
-    protected int getChargedUseMaxTime(ItemStack stack, LivingEntity user) {
-        return 72000;
-    }
-
-    protected UseAction getChargedUseAction(ItemStack stack) {
-        return UseAction.BOW;
-    }
-
-    protected int getRequiredChargeTicks(ItemStack stack, LivingEntity user) {
-        return 0;
-    }
-
-    protected int getUsedTicks(
-            ItemStack stack,
-            LivingEntity user,
-            int remainingUseTicks
-    ) {
-        return getMaxUseTime(stack, user) - remainingUseTicks;
-    }
-
-    protected boolean hasReachedRequiredCharge(
-            ItemStack stack,
-            LivingEntity user,
-            int usedTicks
-    ) {
-        return usedTicks >= getRequiredChargeTicks(stack, user);
-    }
-
-    protected void onChargedUseTick(
-            World world,
-            LivingEntity user,
-            ItemStack stack,
-            int usedTicks,
-            int remainingUseTicks
-    ) {
-    }
-
-    protected void onChargedUseReleased(
-            World world,
-            LivingEntity user,
-            ItemStack stack,
-            int usedTicks,
-            int remainingUseTicks
-    ) {
-    }
-
-    protected abstract TypedActionResult<ItemStack> onArtifactUse(
-            World world,
-            PlayerEntity user,
-            Hand hand,
-            ItemStack stack
-    );
-
     @Override
     public void appendTooltip(
             ItemStack stack,
@@ -307,14 +235,6 @@ public abstract class ArtifactItem extends Item {
             tooltip.add(
                     Text.literal("Кулдаун: " + cooldownTicks + " тиков")
                             .formatted(Formatting.DARK_GRAY)
-            );
-        }
-
-        if (isChargedUse(stack)) {
-            tooltip.add(
-                    Text.literal(
-                            "Минимальная зарядка: " + getRequiredChargeTicks(stack, null) + " тиков"
-                    ).formatted(Formatting.DARK_AQUA)
             );
         }
 
