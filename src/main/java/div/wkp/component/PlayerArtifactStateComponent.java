@@ -12,7 +12,7 @@ import java.util.List;
 
 public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     private final PlayerEntity provider;
-    private final List<ItemStack> storedSoulboundArtifacts = new ArrayList<>();
+    private final List<StoredStack> storedSoulboundArtifacts = new ArrayList<>();
 
     private boolean usingArtifact = false;
     private String activeArtifactId = "";
@@ -25,17 +25,17 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     }
 
     @Override
-    public List<ItemStack> getStoredSoulboundArtifacts() {
+    public List<StoredStack> getStoredSoulboundArtifacts() {
         return storedSoulboundArtifacts;
     }
 
     @Override
-    public void storeSoulboundArtifact(ItemStack stack) {
+    public void storeSoulboundArtifact(int slot, ItemStack stack) {
         if (stack.isEmpty()) {
             return;
         }
 
-        storedSoulboundArtifacts.add(stack.copy());
+        storedSoulboundArtifacts.add(new StoredStack(slot, stack.copy()));
         ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
     }
 
@@ -104,8 +104,11 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         NbtList list = new NbtList();
 
-        for (ItemStack stack : storedSoulboundArtifacts) {
-            list.add(stack.encode(registryLookup));
+        for (StoredStack storedStack : storedSoulboundArtifacts) {
+            NbtCompound entry = new NbtCompound();
+            entry.putInt("Slot", storedStack.slot());
+            entry.put("Stack", storedStack.stack().encode(registryLookup));
+            list.add(entry);
         }
 
         tag.put("StoredSoulboundArtifacts", list);
@@ -119,11 +122,13 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
         NbtList list = tag.getList("StoredSoulboundArtifacts", 10);
 
         for (int i = 0; i < list.size(); i++) {
-            ItemStack stack = ItemStack.fromNbt(registryLookup, list.getCompound(i))
+            NbtCompound entry = list.getCompound(i);
+            int slot = entry.getInt("Slot");
+            ItemStack stack = ItemStack.fromNbt(registryLookup, entry.getCompound("Stack"))
                     .orElse(ItemStack.EMPTY);
 
             if (!stack.isEmpty()) {
-                storedSoulboundArtifacts.add(stack);
+                storedSoulboundArtifacts.add(new StoredStack(slot, stack));
             }
         }
     }

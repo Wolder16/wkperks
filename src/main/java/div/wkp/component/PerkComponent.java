@@ -32,4 +32,8 @@ public interface PerkComponent extends Component, AutoSyncedComponent {
     void useTempJump();
 
     void clearTempJumps();
+
+    int getAnomalousBondsCharges();
+
+    void setAnomalousBondsCharges(int charges);
 }

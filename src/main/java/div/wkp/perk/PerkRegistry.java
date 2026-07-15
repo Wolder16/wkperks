@@ -21,6 +21,7 @@ public final class PerkRegistry {
         register(new ConsumptiveReflexPerk());
         register(new PortableBankPerk());
         register(new ProfitMotivePerk());
+        register(new AnomalousBondsPerk());
         // >>> Чтобы добавить новый перк — просто добавь строку сюда <<<
     }
 

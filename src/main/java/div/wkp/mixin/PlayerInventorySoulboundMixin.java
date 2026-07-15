@@ -20,7 +20,7 @@ public abstract class PlayerInventorySoulboundMixin {
     @Inject(method = "dropAll", at = @At("HEAD"))
     private void wkperks$preserveSoulboundArtifacts(CallbackInfo ci) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
-            ArtifactUtil.storeSoulboundArtifacts(serverPlayer);
+            ArtifactUtil.preserveInventoryOnDeath(serverPlayer);
         }
     }
 }

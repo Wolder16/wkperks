@@ -14,6 +14,7 @@ public class PlayerPerkComponent implements PerkComponent {
     private final PlayerEntity provider;
     private final Map<String, Integer> perks = new HashMap<>();
     private int tempJumps = 0;
+    private int anomalousBondsCharges = 0;
 
     public PlayerPerkComponent(PlayerEntity provider) {
         this.provider = provider;
@@ -80,6 +81,17 @@ public class PlayerPerkComponent implements PerkComponent {
         PerkComponents.PERK_COMPONENT.sync(provider);
     }
 
+    @Override
+    public int getAnomalousBondsCharges() {
+        return anomalousBondsCharges;
+    }
+
+    @Override
+    public void setAnomalousBondsCharges(int charges) {
+        anomalousBondsCharges = Math.max(0, charges);
+        PerkComponents.PERK_COMPONENT.sync(provider);
+    }
+
     // === NBT ===
 
     @Override
@@ -90,6 +102,7 @@ public class PlayerPerkComponent implements PerkComponent {
         }
         tag.put("UnlockedPerks", perksTag);
         tag.putInt("TempJumps", tempJumps);
+        tag.putInt("AnomalousBondsCharges", anomalousBondsCharges);
     }
 
     @Override
@@ -100,6 +113,7 @@ public class PlayerPerkComponent implements PerkComponent {
             perks.put(key, perksTag.getInt(key));
         }
         tempJumps = tag.getInt("TempJumps");
+        anomalousBondsCharges = tag.getInt("AnomalousBondsCharges");
 
         for (Map.Entry<String, Integer> entry : perks.entrySet()) {
             Perk perk = PerkRegistry.get(entry.getKey());

@@ -7,9 +7,12 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import java.util.List;
 
 public interface ArtifactStateComponent extends Component, AutoSyncedComponent {
-    List<ItemStack> getStoredSoulboundArtifacts();
+    record StoredStack(int slot, ItemStack stack) {
+    }
 
-    void storeSoulboundArtifact(ItemStack stack);
+    List<StoredStack> getStoredSoulboundArtifacts();
+
+    void storeSoulboundArtifact(int slot, ItemStack stack);
 
     void clearStoredSoulboundArtifacts();
 

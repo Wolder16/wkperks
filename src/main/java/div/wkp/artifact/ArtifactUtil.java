@@ -1,7 +1,10 @@
 package div.wkp.artifact;
 
 import div.wkp.ArtifactComponents;
+import div.wkp.PerkComponents;
 import div.wkp.component.ArtifactStateComponent;
+import div.wkp.component.PerkComponent;
+import div.wkp.perk.perks.AnomalousBondsPerk;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -10,6 +13,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Hand;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public final class ArtifactUtil {
@@ -25,28 +29,48 @@ public final class ArtifactUtil {
                 && artifact.isSoulbound(stack);
     }
 
-    public static void storeSoulboundArtifacts(ServerPlayerEntity player) {
+    public static void preserveInventoryOnDeath(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
-        ArtifactStateComponent component =
+        ArtifactStateComponent artifactComponent =
                 ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player);
+        PerkComponent perkComponent = PerkComponents.PERK_COMPONENT.get(player);
 
-        component.clearStoredSoulboundArtifacts();
+        artifactComponent.clearStoredSoulboundArtifacts();
 
-        List<ItemStack> captured = new ArrayList<>();
+        boolean preserveEntireInventory = perkComponent.hasPerk(AnomalousBondsPerk.ID)
+                && perkComponent.getAnomalousBondsCharges() > 0;
+
+        List<ArtifactStateComponent.StoredStack> captured = new ArrayList<>();
 
         for (int slot = 0; slot < inventory.size(); slot++) {
             ItemStack stack = inventory.getStack(slot);
 
-            if (!isSoulboundArtifact(stack)) {
+            if (stack.isEmpty()) {
                 continue;
             }
 
-            captured.add(stack.copy());
+            if (!preserveEntireInventory && !isSoulboundArtifact(stack)) {
+                continue;
+            }
+
+            captured.add(new ArtifactStateComponent.StoredStack(slot, stack.copy()));
             inventory.setStack(slot, ItemStack.EMPTY);
         }
 
-        for (ItemStack stack : captured) {
-            component.storeSoulboundArtifact(stack);
+        for (ArtifactStateComponent.StoredStack storedStack : captured) {
+            artifactComponent.storeSoulboundArtifact(
+                    storedStack.slot(),
+                    storedStack.stack()
+            );
+        }
+
+        if (preserveEntireInventory) {
+            int remainingCharges = perkComponent.getAnomalousBondsCharges() - 1;
+            perkComponent.setAnomalousBondsCharges(remainingCharges);
+
+            if (remainingCharges <= 0) {
+                perkComponent.clearPerk(AnomalousBondsPerk.ID);
+            }
         }
 
         inventory.markDirty();
@@ -60,13 +84,29 @@ public final class ArtifactUtil {
             return;
         }
 
-        List<ItemStack> restored = new ArrayList<>(
+        List<ArtifactStateComponent.StoredStack> restored = new ArrayList<>(
                 component.getStoredSoulboundArtifacts()
         );
 
+        restored.sort(Comparator.comparingInt(ArtifactStateComponent.StoredStack::slot));
         component.clearStoredSoulboundArtifacts();
 
-        for (ItemStack stack : restored) {
+        List<ItemStack> overflow = new ArrayList<>();
+
+        for (ArtifactStateComponent.StoredStack storedStack : restored) {
+            int slot = storedStack.slot();
+            ItemStack stack = storedStack.stack().copy();
+
+            if (slot >= 0
+                    && slot < player.getInventory().size()
+                    && player.getInventory().getStack(slot).isEmpty()) {
+                player.getInventory().setStack(slot, stack);
+            } else {
+                overflow.add(stack);
+            }
+        }
+
+        for (ItemStack stack : overflow) {
             if (!player.getInventory().insertStack(stack)) {
                 player.getInventory().offerOrDrop(stack);
             }
