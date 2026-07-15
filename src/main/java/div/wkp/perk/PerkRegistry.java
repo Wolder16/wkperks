@@ -22,6 +22,10 @@ public final class PerkRegistry {
         register(new PortableBankPerk());
         register(new ProfitMotivePerk());
         register(new AnomalousBondsPerk());
+        register(new ArmoredPlatingPerk());
+        register(new SteadiedStancePerk());
+        register(new SomaticPainkillersPerk());
+        register(new TissueRestorativesPerk());
         // >>> Чтобы добавить новый перк — просто добавь строку сюда <<<
     }
 

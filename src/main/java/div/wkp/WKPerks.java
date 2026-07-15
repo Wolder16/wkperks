@@ -19,6 +19,7 @@ import div.wkp.perk.PerkRegistry;
 import div.wkp.perk.perks.ConsumptiveReflexPerk;
 import div.wkp.perk.perks.PortableBankPerk;
 import div.wkp.perk.perks.ProfitMotivePerk;
+import div.wkp.perk.perks.TissueRestorativesPerk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -170,6 +172,7 @@ public final class WKPerks implements ModInitializer {
                 ArtifactUtil.tickUsingArtifact(player);
                 ConsumptiveReflexPerk.tick(player);
                 ProfitMotivePerk.tick(player);
+                TissueRestorativesPerk.tick(player);
             }
 
         });
@@ -224,6 +227,22 @@ public final class WKPerks implements ModInitializer {
                                         ctx.getSource().sendFeedback(() -> Text.literal("Сброшено: " + id), false);
                                         return 1;
                                     })))
+                    .then(CommandManager.literal("clearall")
+                            .executes(ctx -> {
+                                ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                                var comp = PerkComponents.PERK_COMPONENT.get(player);
+
+                                var perkIds = new ArrayList<>(comp.getPerks().keySet());
+                                for (String perkId : perkIds) {
+                                    comp.clearPerk(perkId);
+                                }
+
+                                comp.clearTempJumps();
+                                comp.setAnomalousBondsCharges(0);
+
+                                ctx.getSource().sendFeedback(() -> Text.literal("Все перки удалены."), false);
+                                return 1;
+                            }))
                     .then(CommandManager.literal("list")
                             .executes(ctx -> {
                                 ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();

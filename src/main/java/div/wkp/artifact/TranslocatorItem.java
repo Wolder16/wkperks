@@ -10,7 +10,6 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -86,7 +85,7 @@ public class TranslocatorItem extends ArtifactItem {
             double offset = Math.max(user.getWidth() * 0.5D + 0.1D, 0.4D);
             baseTarget = new Vec3d(
                     hitPos.x + side.getOffsetX() * offset,
-                    user.getY(),
+                    hitPos.y,
                     hitPos.z + side.getOffsetZ() * offset
             );
         } else if (side == Direction.UP) {
@@ -103,30 +102,7 @@ public class TranslocatorItem extends ArtifactItem {
             );
         }
 
-        return findSafeTeleportPosition(user, baseTarget);
-    }
-
-    private static Vec3d findSafeTeleportPosition(PlayerEntity user, Vec3d baseTarget) {
-        Box currentBox = user.getBoundingBox();
-        double offsetX = baseTarget.x - user.getX();
-        double offsetZ = baseTarget.z - user.getZ();
-
-        double[] verticalOffsets = {0.0D, 0.25D, 0.5D, 0.75D, 1.0D};
-
-        for (double verticalOffset : verticalOffsets) {
-            double candidateY = baseTarget.y + verticalOffset;
-            Box candidateBox = currentBox.offset(
-                    offsetX,
-                    candidateY - user.getY(),
-                    offsetZ
-            );
-
-            if (user.getWorld().isSpaceEmpty(user, candidateBox)) {
-                return new Vec3d(baseTarget.x, candidateY, baseTarget.z);
-            }
-        }
-
-        return null;
+        return baseTarget;
     }
 
     private static void spawnTargetParticles(World world, Vec3d center, int age) {
@@ -169,7 +145,7 @@ public class TranslocatorItem extends ArtifactItem {
             net.minecraft.item.tooltip.TooltipType type
     ) {
         tooltip.add(
-                Text.literal("Зажми на 2 секунды и отпусти для телепортации.")
+                Text.literal("Зажми ПКМ для прицеливания и отпусти для телепортации.")
                         .formatted(Formatting.DARK_AQUA)
         );
         super.appendTooltip(stack, context, tooltip, type);
