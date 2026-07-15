@@ -10,6 +10,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -17,7 +18,7 @@ import org.joml.Vector3f;
 
 public class TranslocatorItem extends ArtifactItem {
     private static final double RANGE = 15.0D;
-    private static final int CHARGE_TICKS = 40;
+    private static final int CHARGE_TICKS = 10;
     private static final DustParticleEffect TARGET_PARTICLE =
             new DustParticleEffect(new Vector3f(0.92F, 0.12F, 0.14F), 1.15F);
 
@@ -77,16 +78,59 @@ public class TranslocatorItem extends ArtifactItem {
         }
 
         Direction side = blockHitResult.getSide();
+        Vec3d hitPos = blockHitResult.getPos();
 
-        return blockHitResult.getPos().add(
-                side.getOffsetX() * 0.15D,
-                side.getOffsetY() * 0.15D,
-                side.getOffsetZ() * 0.15D
-        );
+        Vec3d baseTarget;
+
+        if (side.getAxis().isHorizontal()) {
+            double offset = Math.max(user.getWidth() * 0.5D + 0.1D, 0.4D);
+            baseTarget = new Vec3d(
+                    hitPos.x + side.getOffsetX() * offset,
+                    user.getY(),
+                    hitPos.z + side.getOffsetZ() * offset
+            );
+        } else if (side == Direction.UP) {
+            baseTarget = new Vec3d(
+                    hitPos.x,
+                    blockHitResult.getBlockPos().getY() + 1.01D,
+                    hitPos.z
+            );
+        } else {
+            baseTarget = new Vec3d(
+                    hitPos.x,
+                    blockHitResult.getBlockPos().getY() - user.getHeight() - 0.01D,
+                    hitPos.z
+            );
+        }
+
+        return findSafeTeleportPosition(user, baseTarget);
+    }
+
+    private static Vec3d findSafeTeleportPosition(PlayerEntity user, Vec3d baseTarget) {
+        Box currentBox = user.getBoundingBox();
+        double offsetX = baseTarget.x - user.getX();
+        double offsetZ = baseTarget.z - user.getZ();
+
+        double[] verticalOffsets = {0.0D, 0.25D, 0.5D, 0.75D, 1.0D};
+
+        for (double verticalOffset : verticalOffsets) {
+            double candidateY = baseTarget.y + verticalOffset;
+            Box candidateBox = currentBox.offset(
+                    offsetX,
+                    candidateY - user.getY(),
+                    offsetZ
+            );
+
+            if (user.getWorld().isSpaceEmpty(user, candidateBox)) {
+                return new Vec3d(baseTarget.x, candidateY, baseTarget.z);
+            }
+        }
+
+        return null;
     }
 
     private static void spawnTargetParticles(World world, Vec3d center, int age) {
-        if (!world.isClient) {
+        if (!world.isClient || age % 2 != 0) {
             return;
         }
 

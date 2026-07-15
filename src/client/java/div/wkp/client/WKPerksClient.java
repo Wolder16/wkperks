@@ -2,8 +2,11 @@ package div.wkp.client;
 
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
+import div.wkp.artifact.ArtifactUtil;
+import div.wkp.artifact.TranslocatorItem;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.client.mixin.HandledScreenAccessor;
+import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
 import div.wkp.perk.perks.PortableBankPerk;
@@ -24,9 +27,13 @@ public final class WKPerksClient implements ClientModInitializer {
     private static boolean wasOnGround = true;
     private static boolean jumpKeyWasDown = false;
 
+    private static boolean artifactUseKeyWasDown = false;
+    private static net.minecraft.util.Hand activeArtifactHand = null;
+
     @Override
     public void onInitializeClient() {
         registerDoubleJump();
+        registerArtifactInput();
         registerInventoryButtons();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
         HandledScreens.register(
@@ -81,6 +88,73 @@ public final class WKPerksClient implements ClientModInitializer {
         });
     }
 
+    private void registerArtifactInput() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            var player = client.player;
+            if (player == null || client.world == null) {
+                artifactUseKeyWasDown = false;
+                activeArtifactHand = null;
+                return;
+            }
+
+            boolean useKeyDown = client.options.useKey.isPressed();
+
+            if (activeArtifactHand != null
+                    && !ArtifactUtil.isHoldingArtifact(player, activeArtifactHand)) {
+                ClientPlayNetworking.send(new ArtifactUsePayload(
+                        activeArtifactHand,
+                        ArtifactUsePayload.Action.RELEASE
+                ));
+                activeArtifactHand = null;
+            }
+
+            if (useKeyDown && !artifactUseKeyWasDown) {
+                net.minecraft.util.Hand hand = findArtifactHand(player);
+
+                if (hand != null) {
+                    activeArtifactHand = hand;
+                    ClientPlayNetworking.send(new ArtifactUsePayload(
+                            hand,
+                            ArtifactUsePayload.Action.START
+                    ));
+                }
+            }
+
+            if (!useKeyDown && artifactUseKeyWasDown && activeArtifactHand != null) {
+                ClientPlayNetworking.send(new ArtifactUsePayload(
+                        activeArtifactHand,
+                        ArtifactUsePayload.Action.RELEASE
+                ));
+                activeArtifactHand = null;
+            }
+
+            if (useKeyDown && activeArtifactHand != null) {
+                var stack = player.getStackInHand(activeArtifactHand);
+                if (stack.getItem() instanceof TranslocatorItem) {
+                    TranslocatorItem.spawnClientPreview(player, player.age);
+                }
+            }
+
+            artifactUseKeyWasDown = useKeyDown;
+        });
+    }
+
+    private static net.minecraft.util.Hand findArtifactHand(net.minecraft.entity.player.PlayerEntity player) {
+        if (ArtifactUtil.isHoldingArtifact(player, net.minecraft.util.Hand.MAIN_HAND)
+                && !player.getItemCooldownManager().isCoolingDown(
+                player.getMainHandStack().getItem())) {
+            return net.minecraft.util.Hand.MAIN_HAND;
+        }
+
+        if (ArtifactUtil.isHoldingArtifact(player, net.minecraft.util.Hand.OFF_HAND)
+                && !player.getItemCooldownManager().isCoolingDown(
+                player.getOffHandStack().getItem())) {
+            return net.minecraft.util.Hand.OFF_HAND;
+        }
+
+        return null;
+    }
+
     private void registerInventoryButtons() {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof InventoryScreen inventoryScreen)) {
@@ -119,9 +193,12 @@ public final class WKPerksClient implements ClientModInitializer {
                 bankButton.setX(currentAccessor.wkperks$getX() + 128);
                 bankButton.setY(currentAccessor.wkperks$getY() + 61);
 
+                boolean hasPortableBankNow = PerkComponents.PERK_COMPONENT
+                        .get(client.player)
+                        .hasPerk(PortableBankPerk.ID);
 
-                bankButton.visible = hasPortableBank;
-                bankButton.active = hasPortableBank;
+                bankButton.visible = hasPortableBankNow;
+                bankButton.active = hasPortableBankNow;
 
                 PerkOverlayRenderer.render(
                         inventoryScreen,

@@ -10,7 +10,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 
 public class GravityGloveItem extends ArtifactItem {
-    private static final int CHARGE_TICKS = 40;
+    private static final int CHARGE_TICKS = 20;
     private static final int STARTUP_ENERGY_COST = 1;
     private static final int ACTIVE_DRAIN_INTERVAL = 5;
     private static final int ACTIVE_DRAIN_COST = 1;
