@@ -47,10 +47,13 @@ public final class ArtifactUtil {
         List<ArtifactStateComponent.StoredStack> captured = new ArrayList<>();
 
         if (artifactComponent.hasActiveSpear()) {
-            captured.add(new ArtifactStateComponent.StoredStack(
-                    artifactComponent.getActiveSpearSlot(),
-                    new ItemStack(ModItems.ARTIFACT_SPEAR)
-            ));
+            ItemStack activeSpearStack = getActiveSpearStack(player, artifactComponent);
+            if (!activeSpearStack.isEmpty()) {
+                captured.add(new ArtifactStateComponent.StoredStack(
+                        artifactComponent.getActiveSpearSlot(),
+                        activeSpearStack
+                ));
+            }
             discardActiveSpearEntity(player, artifactComponent);
             artifactComponent.clearActiveSpear();
         }
@@ -253,6 +256,17 @@ public final class ArtifactUtil {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private static ItemStack getActiveSpearStack(
+            ServerPlayerEntity player,
+            ArtifactStateComponent component
+    ) {
+        Entity entity = getActiveSpearEntity(player, component);
+        if (entity instanceof SpearProjectileEntity spearProjectile) {
+            return spearProjectile.getStack().copy();
+        }
+        return ItemStack.EMPTY;
     }
 
     private static void discardActiveSpearEntity(

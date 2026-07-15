@@ -3,16 +3,65 @@ package div.wkp.artifact;
 import div.wkp.ArtifactComponents;
 import div.wkp.component.ArtifactStateComponent;
 import div.wkp.entity.SpearProjectileEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import net.minecraft.world.World;
 
 public class ArtifactSpearItem extends ArtifactItem {
+    public static final int MAX_HEAT = 20;
+    public static final int HEAT_PER_PHASE = 5;
+    public static final int COOL_INTERVAL_TICKS = 20;
+
     public ArtifactSpearItem(Settings settings) {
-        super(settings, 20, 1, 8, true);
+        super(settings, MAX_HEAT, 0, 8, true);
+    }
+
+    public static int getHeatPhase(ItemStack stack) {
+        int heat = Math.max(0, Math.min(MAX_HEAT, stack.getDamage()));
+
+        if (heat >= 15) {
+            return 4;
+        }
+        if (heat >= 10) {
+            return 3;
+        }
+        if (heat >= 5) {
+            return 2;
+        }
+        return 1;
+    }
+
+    public static boolean isOverheated(ItemStack stack) {
+        return getHeatPhase(stack) >= 4;
+    }
+
+    public static void addHeatOnCatch(ItemStack stack) {
+        stack.setDamage(Math.min(MAX_HEAT, stack.getDamage() + HEAT_PER_PHASE));
+    }
+
+    @Override
+    public void inventoryTick(
+            ItemStack stack,
+            World world,
+            Entity entity,
+            int slot,
+            boolean selected
+    ) {
+        if (!world.isClient
+                && entity instanceof ServerPlayerEntity
+                && !selected
+                && slot != PlayerInventory.OFF_HAND_SLOT
+                && stack.getDamage() > 0
+                && entity.age % COOL_INTERVAL_TICKS == 0) {
+            stack.setDamage(Math.max(0, stack.getDamage() - 1));
+        }
+
+        super.inventoryTick(stack, world, entity, slot, selected);
     }
 
     @Override
@@ -37,7 +86,7 @@ public class ArtifactSpearItem extends ArtifactItem {
                 ? player.getInventory().selectedSlot
                 : PlayerInventory.OFF_HAND_SLOT;
 
-        SpearProjectileEntity spear = new SpearProjectileEntity(player, hand, sourceSlot);
+        SpearProjectileEntity spear = new SpearProjectileEntity(player, hand, sourceSlot, stack.copy());
         player.getWorld().spawnEntity(spear);
         component.setActiveSpear(spear.getUuidAsString(), sourceSlot);
         SpearProjectileEntity.applyThrowRecoil(player);
@@ -60,7 +109,14 @@ public class ArtifactSpearItem extends ArtifactItem {
                 Text.literal("ПКМ: бросок. Повторный ПКМ после броска: отзыв.")
                         .formatted(Formatting.DARK_AQUA)
         );
-
+        tooltip.add(
+                Text.literal("Фаза нагрева: " + getHeatPhase(stack) + " / 4")
+                        .formatted(isOverheated(stack) ? Formatting.RED : Formatting.GOLD)
+        );
+        tooltip.add(
+                Text.literal("Остывает в неактивном слоте по 1 ед. каждые 2 секунды.")
+                        .formatted(Formatting.GRAY)
+        );
         super.appendTooltip(stack, context, tooltip, type);
     }
 }

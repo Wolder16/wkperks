@@ -16,7 +16,7 @@ public class GravityGloveItem extends ArtifactItem {
     private static final int ACTIVE_DRAIN_COST = 1;
 
     public GravityGloveItem(Settings settings) {
-        super(settings, 20, 1, 5, true);
+        super(settings, 400, 1, 5, true);
     }
 
     @Override

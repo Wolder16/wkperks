@@ -1,6 +1,7 @@
 package div.wkp.entity;
 
 import div.wkp.ArtifactComponents;
+import div.wkp.artifact.ArtifactSpearItem;
 import div.wkp.component.ArtifactStateComponent;
 import div.wkp.item.ModItems;
 import net.minecraft.entity.Entity;
@@ -28,9 +29,12 @@ public class SpearProjectileEntity extends ThrownItemEntity {
     private static final double RECALL_BOOST_MIN_UPWARD = 0.3D;
     private static final double CATCH_DISTANCE = 1.2D;
     private static final float BASE_DAMAGE = 6.0F;
+    private static final int OVERHEAT_BURN_SECONDS = 3;
+    private static final float OVERHEAT_DIRECT_DAMAGE = 2.0F;
 
     private boolean embedded = false;
     private boolean recalling = false;
+    private boolean launchedWhileOverheated = false;
     private Hand recallHand = Hand.MAIN_HAND;
     private int sourceSlot = -1;
 
@@ -38,10 +42,11 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         super(entityType, world);
     }
 
-    public SpearProjectileEntity(ServerPlayerEntity owner, Hand hand, int sourceSlot) {
+    public SpearProjectileEntity(ServerPlayerEntity owner, Hand hand, int sourceSlot, ItemStack stack) {
         super(ModEntities.SPEAR_PROJECTILE, owner, owner.getWorld());
         this.setOwner(owner);
-        this.setItem(new ItemStack(ModItems.ARTIFACT_SPEAR));
+        this.setItem(stack.copy());
+        this.launchedWhileOverheated = ArtifactSpearItem.isOverheated(stack);
         this.recallHand = hand;
         this.sourceSlot = sourceSlot;
         this.setVelocity(owner, owner.getPitch(), owner.getYaw(), 0.0F, THROW_SPEED, 0.0F);
@@ -100,6 +105,10 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         if (owner instanceof LivingEntity livingOwner) {
             entity.damage(this.getDamageSources().thrown(this, livingOwner), BASE_DAMAGE);
         }
+
+        if (launchedWhileOverheated) {
+            applyOverheatPenalty(entity);
+        }
     }
 
     public void startRecall(Hand hand) {
@@ -138,7 +147,8 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         ArtifactStateComponent component =
                 ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player);
 
-        ItemStack returnedSpear = new ItemStack(ModItems.ARTIFACT_SPEAR);
+        ItemStack returnedSpear = this.getStack().copy();
+        ArtifactSpearItem.addHeatOnCatch(returnedSpear);
 
         if (!player.getAbilities().creativeMode) {
             if (player.getStackInHand(recallHand).isEmpty()) {
@@ -146,6 +156,10 @@ public class SpearProjectileEntity extends ThrownItemEntity {
             } else if (!player.getInventory().insertStack(returnedSpear)) {
                 player.getInventory().offerOrDrop(returnedSpear);
             }
+        }
+
+        if (launchedWhileOverheated) {
+            applyOverheatPenalty(player);
         }
 
         Vec3d velocity = this.getVelocity();
@@ -169,6 +183,11 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         this.discard();
     }
 
+    private void applyOverheatPenalty(Entity entity) {
+        entity.setOnFireFor(OVERHEAT_BURN_SECONDS);
+        entity.damage(entity.getDamageSources().generic(), OVERHEAT_DIRECT_DAMAGE);
+    }
+
     public int getSourceSlot() {
         return sourceSlot;
     }
@@ -186,6 +205,7 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         super.writeCustomDataToNbt(nbt);
         nbt.putBoolean("Embedded", embedded);
         nbt.putBoolean("Recalling", recalling);
+        nbt.putBoolean("LaunchedWhileOverheated", launchedWhileOverheated);
         nbt.putString("RecallHand", recallHand.name());
         nbt.putInt("SourceSlot", sourceSlot);
     }
@@ -195,6 +215,7 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         super.readCustomDataFromNbt(nbt);
         embedded = nbt.getBoolean("Embedded");
         recalling = nbt.getBoolean("Recalling");
+        launchedWhileOverheated = nbt.getBoolean("LaunchedWhileOverheated");
         recallHand = Hand.valueOf(nbt.getString("RecallHand"));
         sourceSlot = nbt.getInt("SourceSlot");
         noClip = recalling;
