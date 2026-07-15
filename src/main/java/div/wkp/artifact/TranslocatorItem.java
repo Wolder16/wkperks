@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 
 public class TranslocatorItem extends ArtifactItem {
     private static final double RANGE = 15.0D;
-    private static final int CHARGE_TICKS = 10;
+    private static final int CHARGE_TICKS = 5;
     private static final DustParticleEffect TARGET_PARTICLE =
             new DustParticleEffect(new Vector3f(0.92F, 0.12F, 0.14F), 1.15F);
 

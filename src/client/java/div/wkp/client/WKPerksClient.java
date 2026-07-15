@@ -1,10 +1,12 @@
 package div.wkp.client;
 
+import div.wkp.ArtifactComponents;
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
 import div.wkp.artifact.ArtifactUtil;
 import div.wkp.artifact.TranslocatorItem;
 import div.wkp.block.ModBlockEntities;
+import div.wkp.entity.ModEntities;
 import div.wkp.client.mixin.HandledScreenAccessor;
 import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
@@ -14,9 +16,11 @@ import div.wkp.screen.ModScreenHandlers;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.util.math.Vec3d;
@@ -36,6 +40,7 @@ public final class WKPerksClient implements ClientModInitializer {
         registerArtifactInput();
         registerInventoryButtons();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
+        EntityRendererRegistry.register(ModEntities.SPEAR_PROJECTILE, FlyingItemEntityRenderer::new);
         HandledScreens.register(
                 ModScreenHandlers.TERMINAL,
                 TerminalScreen::new
@@ -111,6 +116,10 @@ public final class WKPerksClient implements ClientModInitializer {
             if (useKeyDown && !artifactUseKeyWasDown) {
                 net.minecraft.util.Hand hand = findArtifactHand(player);
 
+                if (hand == null && ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player).hasActiveSpear()) {
+                    hand = findRecallHand(player);
+                }
+
                 if (hand != null) {
                     activeArtifactHand = hand;
                     ClientPlayNetworking.send(new ArtifactUsePayload(
@@ -153,6 +162,18 @@ public final class WKPerksClient implements ClientModInitializer {
         }
 
         return null;
+    }
+
+    private static net.minecraft.util.Hand findRecallHand(net.minecraft.entity.player.PlayerEntity player) {
+        if (player.getMainHandStack().isEmpty()) {
+            return net.minecraft.util.Hand.MAIN_HAND;
+        }
+
+        if (player.getOffHandStack().isEmpty()) {
+            return net.minecraft.util.Hand.OFF_HAND;
+        }
+
+        return net.minecraft.util.Hand.MAIN_HAND;
     }
 
     private void registerInventoryButtons() {

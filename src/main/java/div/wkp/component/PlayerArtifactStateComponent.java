@@ -14,6 +14,9 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     private final PlayerEntity provider;
     private final List<StoredStack> storedSoulboundArtifacts = new ArrayList<>();
 
+    private String activeSpearUuid = "";
+    private int activeSpearSlot = -1;
+
     private boolean usingArtifact = false;
     private String activeArtifactId = "";
     private net.minecraft.util.Hand activeHand = net.minecraft.util.Hand.MAIN_HAND;
@@ -42,6 +45,35 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     @Override
     public void clearStoredSoulboundArtifacts() {
         storedSoulboundArtifacts.clear();
+        ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
+    }
+
+    @Override
+    public boolean hasActiveSpear() {
+        return !activeSpearUuid.isEmpty();
+    }
+
+    @Override
+    public String getActiveSpearUuid() {
+        return activeSpearUuid;
+    }
+
+    @Override
+    public int getActiveSpearSlot() {
+        return activeSpearSlot;
+    }
+
+    @Override
+    public void setActiveSpear(String spearUuid, int slot) {
+        activeSpearUuid = spearUuid;
+        activeSpearSlot = slot;
+        ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
+    }
+
+    @Override
+    public void clearActiveSpear() {
+        activeSpearUuid = "";
+        activeSpearSlot = -1;
         ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
     }
 
@@ -112,12 +144,16 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
         }
 
         tag.put("StoredSoulboundArtifacts", list);
+        tag.putString("ActiveSpearUuid", activeSpearUuid);
+        tag.putInt("ActiveSpearSlot", activeSpearSlot);
     }
 
     @Override
     public void readFromNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         storedSoulboundArtifacts.clear();
         stopUsingArtifact();
+        activeSpearUuid = tag.getString("ActiveSpearUuid");
+        activeSpearSlot = tag.getInt("ActiveSpearSlot");
 
         NbtList list = tag.getList("StoredSoulboundArtifacts", 10);
 

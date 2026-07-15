@@ -6,6 +6,7 @@ import div.wkp.artifact.ArtifactUtil;
 import div.wkp.block.ModBlocks;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.config.WKPerksConfig;
+import div.wkp.entity.ModEntities;
 import div.wkp.item.ModItems;
 import div.wkp.altar.AltarRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -29,6 +30,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.util.Hand;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -67,6 +69,7 @@ public final class WKPerks implements ModInitializer {
         ModBlocks.initialize();
         ModScreenHandlers.initialize();
         ModBlockEntities.initialize();
+        ModEntities.initialize();
         PerkRegistry.init();
         AltarRegistry.init();
         PayloadTypeRegistry.playC2S().register(DoubleJumpPayload.ID, DoubleJumpPayload.CODEC);
@@ -137,7 +140,13 @@ public final class WKPerks implements ModInitializer {
                 ServerPlayerEntity player = context.player();
 
                 if (payload.action() == ArtifactUsePayload.Action.START) {
-                    ArtifactUtil.startUsingArtifact(player, payload.hand());
+                    if (ArtifactUtil.hasActiveSpear(player)
+                            && !ArtifactUtil.isHoldingArtifact(player, Hand.MAIN_HAND)
+                            && !ArtifactUtil.isHoldingArtifact(player, Hand.OFF_HAND)) {
+                        ArtifactUtil.recallActiveSpear(player, payload.hand());
+                    } else {
+                        ArtifactUtil.startUsingArtifact(player, payload.hand());
+                    }
                 } else if (payload.action() == ArtifactUsePayload.Action.RELEASE) {
                     ArtifactUtil.releaseUsingArtifact(player, payload.hand());
                 }

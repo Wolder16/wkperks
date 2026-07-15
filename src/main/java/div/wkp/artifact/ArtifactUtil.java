@@ -4,7 +4,10 @@ import div.wkp.ArtifactComponents;
 import div.wkp.PerkComponents;
 import div.wkp.component.ArtifactStateComponent;
 import div.wkp.component.PerkComponent;
+import div.wkp.entity.SpearProjectileEntity;
+import div.wkp.item.ModItems;
 import div.wkp.perk.perks.AnomalousBondsPerk;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -15,6 +18,7 @@ import net.minecraft.util.Hand;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 public final class ArtifactUtil {
     private ArtifactUtil() {
@@ -41,6 +45,15 @@ public final class ArtifactUtil {
                 && perkComponent.getAnomalousBondsCharges() > 0;
 
         List<ArtifactStateComponent.StoredStack> captured = new ArrayList<>();
+
+        if (artifactComponent.hasActiveSpear()) {
+            captured.add(new ArtifactStateComponent.StoredStack(
+                    artifactComponent.getActiveSpearSlot(),
+                    new ItemStack(ModItems.ARTIFACT_SPEAR)
+            ));
+            discardActiveSpearEntity(player, artifactComponent);
+            artifactComponent.clearActiveSpear();
+        }
 
         for (int slot = 0; slot < inventory.size(); slot++) {
             ItemStack stack = inventory.getStack(slot);
@@ -114,6 +127,28 @@ public final class ArtifactUtil {
 
         player.getInventory().markDirty();
         player.currentScreenHandler.sendContentUpdates();
+    }
+
+    public static boolean hasActiveSpear(PlayerEntity player) {
+        return ArtifactComponents.ARTIFACT_STATE_COMPONENT
+                .get(player)
+                .hasActiveSpear();
+    }
+
+    public static void recallActiveSpear(ServerPlayerEntity player, Hand hand) {
+        ArtifactStateComponent component =
+                ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player);
+
+        if (!component.hasActiveSpear()) {
+            return;
+        }
+
+        Entity entity = getActiveSpearEntity(player, component);
+        if (entity instanceof SpearProjectileEntity spearProjectile) {
+            spearProjectile.startRecall(hand);
+        } else {
+            component.clearActiveSpear();
+        }
     }
 
     public static void startUsingArtifact(ServerPlayerEntity player, Hand hand) {
@@ -203,6 +238,31 @@ public final class ArtifactUtil {
 
     public static boolean isHoldingArtifact(PlayerEntity player, Hand hand) {
         return player.getStackInHand(hand).getItem() instanceof ArtifactItem;
+    }
+
+    private static Entity getActiveSpearEntity(
+            ServerPlayerEntity player,
+            ArtifactStateComponent component
+    ) {
+        if (!component.hasActiveSpear()) {
+            return null;
+        }
+
+        try {
+            return player.getServerWorld().getEntity(UUID.fromString(component.getActiveSpearUuid()));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static void discardActiveSpearEntity(
+            ServerPlayerEntity player,
+            ArtifactStateComponent component
+    ) {
+        Entity entity = getActiveSpearEntity(player, component);
+        if (entity != null) {
+            entity.discard();
+        }
     }
 
     private static String getArtifactId(ItemStack stack) {
