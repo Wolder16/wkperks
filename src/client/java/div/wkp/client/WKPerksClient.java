@@ -87,7 +87,8 @@ public final class WKPerksClient implements ClientModInitializer {
 
                 Vec3d look = player.getRotationVector();
                 Vec3d horizontal = new Vec3d(look.x, 0.0, look.z).normalize();
-                player.setVelocity(horizontal.x * 0.3, 0.5, horizontal.z * 0.3);
+                double jumpVelocity = PerkUtil.getScaledDoubleJumpVerticalVelocity(player);
+                player.setVelocity(horizontal.x * 0.3, jumpVelocity, horizontal.z * 0.3);
                 ClientPlayNetworking.send(new DoubleJumpPayload(useTempJump));
             }
         });

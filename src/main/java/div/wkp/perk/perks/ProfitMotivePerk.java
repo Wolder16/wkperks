@@ -23,7 +23,9 @@ import java.util.UUID;
 public class ProfitMotivePerk extends AbstractPerk {
     public static final String ID = "profit_motive";
 
-    private static final double BONUS_PER_ROACH = 0.03D;
+    private static final double SPEED_BONUS_PER_ROACH = 0.01D;
+    private static final double JUMP_BONUS_PER_ROACH = 0.01D;
+    private static final double REGEN_BONUS_PER_ROACH = 0.0005D;
     private static final int UPDATE_INTERVAL_TICKS = 10;
 
     private static final Identifier SPEED_MODIFIER_ID =
@@ -40,7 +42,7 @@ public class ProfitMotivePerk extends AbstractPerk {
                 Text.literal("Profit Motive")
                         .formatted(Formatting.GOLD),
                 Text.literal(
-                        "Каждый gold roach в инвентаре даёт +3% скорости, прыжка и регенерации."
+                        "Каждый gold roach в инвентаре даёт +1% скорости и прыжка, а также небольшой бонус к регенерации."
                 ).formatted(Formatting.GRAY),
                 new ItemStack(ModItems.GOLD_ROACH)
         );
@@ -91,7 +93,7 @@ public class ProfitMotivePerk extends AbstractPerk {
         }
 
         float healAmount = (float) (player.getMaxHealth()
-                * BONUS_PER_ROACH
+                * REGEN_BONUS_PER_ROACH
                 * roachCount
                 * (UPDATE_INTERVAL_TICKS / 20.0D));
 
@@ -111,14 +113,20 @@ public class ProfitMotivePerk extends AbstractPerk {
             int level
     ) {
         int roachCount = countGoldRoaches(player);
-        int totalPercent = (int) Math.round(roachCount * BONUS_PER_ROACH * 100.0D);
+        int speedPercent = (int) Math.round(roachCount * SPEED_BONUS_PER_ROACH * 100.0D);
+        int jumpPercent = (int) Math.round(roachCount * JUMP_BONUS_PER_ROACH * 100.0D);
+        double regenPercent = roachCount * REGEN_BONUS_PER_ROACH * 100.0D;
 
         return java.util.List.of(
                 Text.literal("Золотых тараканов: " + roachCount)
                         .formatted(roachCount > 0 ? Formatting.YELLOW : Formatting.GRAY),
                 Text.literal(
-                        "Итоговый бафф: +" + totalPercent + "% к скорости, прыжку и регенерации"
-                ).formatted(totalPercent > 0 ? Formatting.GREEN : Formatting.GRAY)
+                        "Скорость: +" + speedPercent + "% | Прыжок: +" + jumpPercent + "%"
+                ).formatted((speedPercent > 0 || jumpPercent > 0) ? Formatting.GREEN : Formatting.GRAY),
+                Text.literal(String.format(java.util.Locale.ROOT,
+                                "Регенерация: +%.2f%% от макс. HP в секунду",
+                                regenPercent))
+                        .formatted(regenPercent > 0.0D ? Formatting.GREEN : Formatting.GRAY)
         );
     }
 
@@ -146,13 +154,14 @@ public class ProfitMotivePerk extends AbstractPerk {
             return;
         }
 
-        double bonus = roachCount * BONUS_PER_ROACH;
+        double speedBonus = roachCount * SPEED_BONUS_PER_ROACH;
+        double jumpBonus = roachCount * JUMP_BONUS_PER_ROACH;
 
         if (speed != null) {
             speed.addPersistentModifier(
                     new EntityAttributeModifier(
                             SPEED_MODIFIER_ID,
-                            bonus,
+                            speedBonus,
                             EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
                     )
             );
@@ -162,7 +171,7 @@ public class ProfitMotivePerk extends AbstractPerk {
             jump.addPersistentModifier(
                     new EntityAttributeModifier(
                             JUMP_MODIFIER_ID,
-                            bonus,
+                            jumpBonus,
                             EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
                     )
             );

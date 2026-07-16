@@ -96,11 +96,23 @@ public final class PerkOverlayRenderer {
 
             if (perk.getMaxLevel() > 1) {
                 String levelText = String.valueOf(level);
+                int textWidth = client.textRenderer.getWidth(levelText);
+                int textX = slotX + SLOT_SIZE - textWidth - 2;
+                int textY = slotY + 1;
+
+                context.fill(
+                        textX - 1,
+                        textY - 1,
+                        textX + textWidth + 1,
+                        textY + 8,
+                        0xCC1A100B
+                );
+
                 context.drawText(
                         client.textRenderer,
                         levelText,
-                        slotX + 10,
-                        slotY + 10,
+                        textX,
+                        textY,
                         COLOR_LEVEL,
                         true
                 );

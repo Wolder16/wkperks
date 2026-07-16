@@ -3,11 +3,16 @@ package div.wkp;
 import div.wkp.component.PerkComponent;
 import div.wkp.perk.Perk;
 import div.wkp.perk.PerkRegistry;
+import net.minecraft.entity.attribute.EntityAttributeInstance;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 
 import java.util.Map;
 
 public final class PerkUtil {
+    private static final double BASE_PLAYER_JUMP_STRENGTH = 0.42D;
+    private static final double BASE_DOUBLE_JUMP_VERTICAL_VELOCITY = 0.5D;
+
     private PerkUtil() {
     }
 
@@ -39,5 +44,22 @@ public final class PerkUtil {
                     enabled ? entry.getValue() : 0
             );
         }
+    }
+
+    public static double getScaledDoubleJumpVerticalVelocity(PlayerEntity player) {
+        EntityAttributeInstance jumpStrength =
+                player.getAttributeInstance(EntityAttributes.GENERIC_JUMP_STRENGTH);
+
+        if (jumpStrength == null) {
+            return BASE_DOUBLE_JUMP_VERTICAL_VELOCITY;
+        }
+
+        double currentJumpStrength = jumpStrength.getValue();
+        if (currentJumpStrength <= 0.0D) {
+            return BASE_DOUBLE_JUMP_VERTICAL_VELOCITY;
+        }
+
+        return BASE_DOUBLE_JUMP_VERTICAL_VELOCITY
+                * (currentJumpStrength / BASE_PLAYER_JUMP_STRENGTH);
     }
 }
