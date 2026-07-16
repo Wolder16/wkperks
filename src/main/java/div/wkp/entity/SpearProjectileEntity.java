@@ -19,8 +19,12 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class SpearProjectileEntity extends ThrownItemEntity {
+public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity {
     private static final float THROW_SPEED = 5.0F;
     private static final double THROW_RECOIL = 0.5D;
     private static final double RECALL_SPEED = 0.7D;
@@ -32,11 +36,15 @@ public class SpearProjectileEntity extends ThrownItemEntity {
     private static final int OVERHEAT_BURN_SECONDS = 3;
     private static final float OVERHEAT_DIRECT_DAMAGE = 2.0F;
 
+    private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
+
     private boolean embedded = false;
     private boolean recalling = false;
     private boolean launchedWhileOverheated = false;
     private Hand recallHand = Hand.MAIN_HAND;
     private int sourceSlot = -1;
+    private float embeddedYaw = 0.0F;
+    private float embeddedPitch = 0.0F;
 
     public SpearProjectileEntity(EntityType<? extends SpearProjectileEntity> entityType, World world) {
         super(entityType, world);
@@ -87,6 +95,8 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         }
 
         embedded = true;
+        this.embeddedYaw = this.getYaw();
+        this.embeddedPitch = this.getPitch();
         this.setVelocity(Vec3d.ZERO);
         this.setPosition(blockHitResult.getPos());
     }
@@ -200,6 +210,14 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         return recalling;
     }
 
+    public float getEmbeddedYaw() {
+        return embeddedYaw;
+    }
+
+    public float getEmbeddedPitch() {
+        return embeddedPitch;
+    }
+
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
@@ -208,6 +226,8 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         nbt.putBoolean("LaunchedWhileOverheated", launchedWhileOverheated);
         nbt.putString("RecallHand", recallHand.name());
         nbt.putInt("SourceSlot", sourceSlot);
+        nbt.putFloat("EmbeddedYaw", embeddedYaw);
+        nbt.putFloat("EmbeddedPitch", embeddedPitch);
     }
 
     @Override
@@ -218,6 +238,8 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         launchedWhileOverheated = nbt.getBoolean("LaunchedWhileOverheated");
         recallHand = Hand.valueOf(nbt.getString("RecallHand"));
         sourceSlot = nbt.getInt("SourceSlot");
+        embeddedYaw = nbt.getFloat("EmbeddedYaw");
+        embeddedPitch = nbt.getFloat("EmbeddedPitch");
         noClip = recalling;
     }
 
@@ -225,5 +247,14 @@ public class SpearProjectileEntity extends ThrownItemEntity {
         Vec3d look = player.getRotationVector();
         player.addVelocity(-look.x * THROW_RECOIL, 0.4D, -look.z * THROW_RECOIL);
         player.velocityModified = true;
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return this.geoCache;
     }
 }

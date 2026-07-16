@@ -1,6 +1,7 @@
 package div.wkp.artifact;
 
 import div.wkp.ArtifactComponents;
+import div.wkp.WKPerks;
 import div.wkp.component.ArtifactStateComponent;
 import div.wkp.entity.SpearProjectileEntity;
 import net.minecraft.entity.Entity;
@@ -10,12 +11,27 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
+import software.bernie.geckolib.animatable.GeoItem;
+import software.bernie.geckolib.animatable.client.GeoRenderProvider;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class ArtifactSpearItem extends ArtifactItem {
+import java.util.function.Consumer;
+
+public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
     public static final int MAX_HEAT = 20;
     public static final int HEAT_PER_PHASE = 5;
     public static final int COOL_INTERVAL_TICKS = 20;
+
+    private static final Identifier PHASE1_TEXTURE = Identifier.of(WKPerks.MOD_ID, "textures/item/artifact_spear_phase1.png");
+    private static final Identifier PHASE2_TEXTURE = Identifier.of(WKPerks.MOD_ID, "textures/item/artifact_spear_phase2.png");
+    private static final Identifier PHASE3_TEXTURE = Identifier.of(WKPerks.MOD_ID, "textures/item/artifact_spear_phase3.png");
+    private static final Identifier PHASE4_TEXTURE = Identifier.of(WKPerks.MOD_ID, "textures/item/artifact_spear_phase4.png");
+
+    private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
 
     public ArtifactSpearItem(Settings settings) {
         super(settings, MAX_HEAT, 0, 8, true);
@@ -42,6 +58,15 @@ public class ArtifactSpearItem extends ArtifactItem {
 
     public static void addHeatOnCatch(ItemStack stack) {
         stack.setDamage(Math.min(MAX_HEAT, stack.getDamage() + HEAT_PER_PHASE));
+    }
+
+    public static Identifier getTextureForStack(ItemStack stack) {
+        return switch (getHeatPhase(stack)) {
+            case 2 -> PHASE2_TEXTURE;
+            case 3 -> PHASE3_TEXTURE;
+            case 4 -> PHASE4_TEXTURE;
+            default -> PHASE1_TEXTURE;
+        };
     }
 
     @Override
@@ -118,5 +143,30 @@ public class ArtifactSpearItem extends ArtifactItem {
                         .formatted(Formatting.GRAY)
         );
         super.appendTooltip(stack, context, tooltip, type);
+    }
+
+    @Override
+    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
+        consumer.accept(new GeoRenderProvider() {
+            private div.wkp.client.renderer.item.ArtifactSpearItemRenderer renderer;
+
+            @Override
+            public net.minecraft.client.render.item.BuiltinModelItemRenderer getGeoItemRenderer() {
+                if (this.renderer == null) {
+                    this.renderer = new div.wkp.client.renderer.item.ArtifactSpearItemRenderer();
+                }
+
+                return this.renderer;
+            }
+        });
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return this.geoCache;
     }
 }

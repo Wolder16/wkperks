@@ -6,8 +6,9 @@ import div.wkp.PerkUtil;
 import div.wkp.artifact.ArtifactUtil;
 import div.wkp.artifact.TranslocatorItem;
 import div.wkp.block.ModBlockEntities;
-import div.wkp.entity.ModEntities;
 import div.wkp.client.mixin.HandledScreenAccessor;
+import div.wkp.client.renderer.entity.SpearProjectileRenderer;
+import div.wkp.entity.ModEntities;
 import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
@@ -20,7 +21,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
-import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.util.math.Vec3d;
@@ -40,7 +40,7 @@ public final class WKPerksClient implements ClientModInitializer {
         registerArtifactInput();
         registerInventoryButtons();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
-        EntityRendererRegistry.register(ModEntities.SPEAR_PROJECTILE, FlyingItemEntityRenderer::new);
+        EntityRendererRegistry.register(ModEntities.SPEAR_PROJECTILE, SpearProjectileRenderer::new);
         HandledScreens.register(
                 ModScreenHandlers.TERMINAL,
                 TerminalScreen::new
