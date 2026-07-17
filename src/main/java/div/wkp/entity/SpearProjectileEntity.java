@@ -29,11 +29,11 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
     private static final double THROW_RECOIL = 0.5D;
     private static final double RECALL_SPEED = 1.0D;
     private static final double RECALL_BOOST_HORIZONTAL = 1.5D;
-    private static final double RECALL_BOOST_VERTICAL = 0.75D;
+    private static final double RECALL_BOOST_VERTICAL = 0.65D;
     private static final double RECALL_BOOST_MIN_UPWARD = 0.4D;
     private static final double CATCH_DISTANCE = 1.2D;
     private static final double MIN_RECALL_DISTANCE = 2.0D;
-    private static final double EMBED_DEPTH = -0.5D;
+    private static final double EMBED_DEPTH = -1.5D;
     private static final float BASE_DAMAGE = 6.0F;
     private static final int OVERHEAT_BURN_SECONDS = 3;
     private static final float OVERHEAT_DIRECT_DAMAGE = 2.0F;
