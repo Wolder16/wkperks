@@ -9,8 +9,13 @@ import div.wkp.config.WKPerksConfig;
 import div.wkp.entity.ModEntities;
 import div.wkp.item.ModItems;
 import div.wkp.altar.AltarRegistry;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import div.wkp.screen.ModScreenHandlers;
 import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
@@ -27,13 +32,14 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.command.CommandManager;
-import net.minecraft.util.Hand;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
@@ -41,11 +47,13 @@ import org.slf4j.LoggerFactory;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public final class WKPerks implements ModInitializer {
     public static final String MOD_ID = "wkperks";
@@ -53,9 +61,17 @@ public final class WKPerks implements ModInitializer {
 
     private static final SuggestionProvider<ServerCommandSource> PERK_SUGGESTIONS =
             (context, builder) -> {
-                for (Perk perk : PerkRegistry.getAll()) builder.suggest(perk.getId());
+                for (Perk perk : PerkRegistry.getAll()) {
+                    builder.suggest(perk.getId());
+                }
                 return builder.buildFuture();
             };
+
+    private static final SuggestionProvider<ServerCommandSource> ADDABLE_PERK_SUGGESTIONS =
+            (context, builder) -> suggestPerksForTargets(context, builder, true);
+
+    private static final SuggestionProvider<ServerCommandSource> REMOVABLE_PERK_SUGGESTIONS =
+            (context, builder) -> suggestPerksForTargets(context, builder, false);
 
     private static final Set<UUID> FALL_DAMAGE_IMMUNITY = new HashSet<>();
     // Запоминаем последний режим каждого игрока, чтобы ловить смену
@@ -141,15 +157,11 @@ public final class WKPerks implements ModInitializer {
                 ServerPlayerEntity player = context.player();
 
                 if (payload.action() == ArtifactUsePayload.Action.START) {
-                    if (ArtifactUtil.hasActiveSpear(player)
-                            && !ArtifactUtil.isHoldingArtifact(player, Hand.MAIN_HAND)
-                            && !ArtifactUtil.isHoldingArtifact(player, Hand.OFF_HAND)) {
-                        ArtifactUtil.recallActiveSpear(player, payload.hand());
-                    } else {
-                        ArtifactUtil.startUsingArtifact(player, payload.hand());
-                    }
+                    ArtifactUtil.startUsingArtifact(player, payload.hand());
                 } else if (payload.action() == ArtifactUsePayload.Action.RELEASE) {
                     ArtifactUtil.releaseUsingArtifact(player, payload.hand());
+                } else if (payload.action() == ArtifactUsePayload.Action.RECALL) {
+                    ArtifactUtil.recallActiveSpear(player, payload.hand());
                 }
             });
         });
@@ -200,74 +212,197 @@ public final class WKPerks implements ModInitializer {
         registerCommands();
     }
 
+    private static CompletableFuture<Suggestions> suggestPerksForTargets(
+            CommandContext<ServerCommandSource> context,
+            SuggestionsBuilder builder,
+            boolean forAdd
+    ) throws CommandSyntaxException {
+        Collection<ServerPlayerEntity> targets = EntityArgumentType.getPlayers(context, "target");
+
+        for (Perk perk : PerkRegistry.getAll()) {
+            boolean shouldSuggest = false;
+
+            for (ServerPlayerEntity target : targets) {
+                int level = PerkComponents.PERK_COMPONENT.get(target).getPerkLevel(perk.getId());
+
+                if (forAdd) {
+                    if (level < perk.getMaxLevel()) {
+                        shouldSuggest = true;
+                        break;
+                    }
+                } else {
+                    if (level > 0) {
+                        shouldSuggest = true;
+                        break;
+                    }
+                }
+            }
+
+            if (shouldSuggest) {
+                builder.suggest(perk.getId());
+            }
+        }
+
+        return builder.buildFuture();
+    }
+
+    private int changePerkLevels(Collection<ServerPlayerEntity> targets, String id, int delta) {
+        int changed = 0;
+
+        for (ServerPlayerEntity target : targets) {
+            int oldLevel = PerkComponents.PERK_COMPONENT.get(target).getPerkLevel(id);
+            PerkComponents.PERK_COMPONENT.get(target).changePerkLevel(id, delta);
+            int newLevel = PerkComponents.PERK_COMPONENT.get(target).getPerkLevel(id);
+
+            if (newLevel != oldLevel) {
+                changed++;
+            }
+        }
+
+        return changed;
+    }
+
+    private int clearPerkForTargets(Collection<ServerPlayerEntity> targets, String id) {
+        int changed = 0;
+
+        for (ServerPlayerEntity target : targets) {
+            int oldLevel = PerkComponents.PERK_COMPONENT.get(target).getPerkLevel(id);
+            PerkComponents.PERK_COMPONENT.get(target).clearPerk(id);
+
+            if (oldLevel > 0) {
+                changed++;
+            }
+        }
+
+        return changed;
+    }
+
+    private int clearAllPerksForTargets(Collection<ServerPlayerEntity> targets) {
+        int changed = 0;
+
+        for (ServerPlayerEntity target : targets) {
+            var comp = PerkComponents.PERK_COMPONENT.get(target);
+            var perkIds = new ArrayList<>(comp.getPerks().keySet());
+
+            if (!perkIds.isEmpty() || comp.getTempJumps() > 0 || comp.getAnomalousBondsCharges() > 0) {
+                changed++;
+            }
+
+            for (String perkId : perkIds) {
+                comp.clearPerk(perkId);
+            }
+
+            comp.clearTempJumps();
+            comp.setAnomalousBondsCharges(0);
+        }
+
+        return changed;
+    }
+
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("perk")
-                    .then(CommandManager.literal("add")
+            var addCommand = CommandManager.literal("add")
+                    .then(CommandManager.argument("target", EntityArgumentType.players())
                             .then(CommandManager.argument("id", StringArgumentType.string())
-                                    .suggests(PERK_SUGGESTIONS)
+                                    .suggests(ADDABLE_PERK_SUGGESTIONS)
+                                    .then(CommandManager.argument("level", IntegerArgumentType.integer(1))
+                                            .executes(ctx -> {
+                                                String id = StringArgumentType.getString(ctx, "id");
+                                                int delta = IntegerArgumentType.getInteger(ctx, "level");
+                                                Collection<ServerPlayerEntity> targets = EntityArgumentType.getPlayers(ctx, "target");
+
+                                                if (!PerkRegistry.exists(id)) {
+                                                    ctx.getSource().sendError(Text.literal("Перк не найден: " + id));
+                                                    return 0;
+                                                }
+
+                                                int changed = changePerkLevels(targets, id, delta);
+                                                ctx.getSource().sendFeedback(() -> Text.literal(
+                                                        "Добавлено уровней перка " + id + ": " + delta + ", изменено игроков: " + changed
+                                                ), false);
+                                                return changed;
+                                            }))));
+
+            var removeCommand = CommandManager.literal("remove")
+                    .then(CommandManager.argument("target", EntityArgumentType.players())
+                            .then(CommandManager.argument("id", StringArgumentType.string())
+                                    .suggests(REMOVABLE_PERK_SUGGESTIONS)
+                                    .then(CommandManager.argument("level", IntegerArgumentType.integer(1))
+                                            .executes(ctx -> {
+                                                String id = StringArgumentType.getString(ctx, "id");
+                                                int delta = IntegerArgumentType.getInteger(ctx, "level");
+                                                Collection<ServerPlayerEntity> targets = EntityArgumentType.getPlayers(ctx, "target");
+
+                                                if (!PerkRegistry.exists(id)) {
+                                                    ctx.getSource().sendError(Text.literal("Перк не найден: " + id));
+                                                    return 0;
+                                                }
+
+                                                int changed = changePerkLevels(targets, id, -delta);
+                                                ctx.getSource().sendFeedback(() -> Text.literal(
+                                                        "Убрано уровней перка " + id + ": " + delta + ", изменено игроков: " + changed
+                                                ), false);
+                                                return changed;
+                                            }))));
+
+            var clearCommand = CommandManager.literal("clear")
+                    .then(CommandManager.argument("target", EntityArgumentType.players())
+                            .then(CommandManager.argument("id", StringArgumentType.string())
+                                    .suggests(REMOVABLE_PERK_SUGGESTIONS)
                                     .executes(ctx -> {
-                                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                                         String id = StringArgumentType.getString(ctx, "id");
+                                        Collection<ServerPlayerEntity> targets = EntityArgumentType.getPlayers(ctx, "target");
+
                                         if (!PerkRegistry.exists(id)) {
                                             ctx.getSource().sendError(Text.literal("Перк не найден: " + id));
                                             return 0;
                                         }
-                                        PerkComponents.PERK_COMPONENT.get(player).addPerk(id);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Перк добавлен: " + id), false);
-                                        return 1;
-                                    })))
-                    .then(CommandManager.literal("remove")
-                            .then(CommandManager.argument("id", StringArgumentType.string())
-                                    .suggests(PERK_SUGGESTIONS)
-                                    .executes(ctx -> {
-                                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                                        String id = StringArgumentType.getString(ctx, "id");
-                                        PerkComponents.PERK_COMPONENT.get(player).removePerk(id);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Перк удалён: " + id), false);
-                                        return 1;
-                                    })))
-                    .then(CommandManager.literal("clear")
-                            .then(CommandManager.argument("id", StringArgumentType.string())
-                                    .suggests(PERK_SUGGESTIONS)
-                                    .executes(ctx -> {
-                                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                                        String id = StringArgumentType.getString(ctx, "id");
-                                        PerkComponents.PERK_COMPONENT.get(player).clearPerk(id);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Сброшено: " + id), false);
-                                        return 1;
-                                    })))
-                    .then(CommandManager.literal("clearall")
+
+                                        int changed = clearPerkForTargets(targets, id);
+                                        ctx.getSource().sendFeedback(() -> Text.literal(
+                                                "Перк сброшен: " + id + ", изменено игроков: " + changed
+                                        ), false);
+                                        return changed;
+                                    })));
+
+            var clearAllCommand = CommandManager.literal("clearall")
+                    .then(CommandManager.argument("target", EntityArgumentType.players())
                             .executes(ctx -> {
-                                ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                                var comp = PerkComponents.PERK_COMPONENT.get(player);
+                                Collection<ServerPlayerEntity> targets = EntityArgumentType.getPlayers(ctx, "target");
+                                int changed = clearAllPerksForTargets(targets);
+                                ctx.getSource().sendFeedback(() -> Text.literal(
+                                        "Все перки удалены. Изменено игроков: " + changed
+                                ), false);
+                                return changed;
+                            }));
 
-                                var perkIds = new ArrayList<>(comp.getPerks().keySet());
-                                for (String perkId : perkIds) {
-                                    comp.clearPerk(perkId);
-                                }
-
-                                comp.clearTempJumps();
-                                comp.setAnomalousBondsCharges(0);
-
-                                ctx.getSource().sendFeedback(() -> Text.literal("Все перки удалены."), false);
-                                return 1;
-                            }))
-                    .then(CommandManager.literal("list")
+            var listCommand = CommandManager.literal("list")
+                    .then(CommandManager.argument("target", EntityArgumentType.player())
                             .executes(ctx -> {
-                                ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "target");
                                 var comp = PerkComponents.PERK_COMPONENT.get(player);
                                 var perks = comp.getPerks();
+
                                 if (perks.isEmpty()) {
-                                    ctx.getSource().sendFeedback(() -> Text.literal("У вас нет перков."), false);
+                                    ctx.getSource().sendFeedback(() -> Text.literal("У игрока нет перков."), false);
                                 } else {
-                                    StringBuilder sb = new StringBuilder("Перки: ");
-                                    perks.forEach((id, lvl) -> sb.append(id).append(" (").append(lvl).append("), "));
-                                    if (comp.getTempJumps() > 0) sb.append("| Temp: ").append(comp.getTempJumps());
+                                    StringBuilder sb = new StringBuilder(player.getName().getString()).append(": ");
+                                    perks.forEach((pid, lvl) -> sb.append(pid).append(" (").append(lvl).append("), "));
+                                    if (comp.getTempJumps() > 0) {
+                                        sb.append("| Temp: ").append(comp.getTempJumps());
+                                    }
                                     ctx.getSource().sendFeedback(() -> Text.literal(sb.toString()), false);
                                 }
+
                                 return 1;
-                            }))
+                            }));
+
+            dispatcher.register(CommandManager.literal("perk")
+                    .then(addCommand)
+                    .then(removeCommand)
+                    .then(clearCommand)
+                    .then(clearAllCommand)
+                    .then(listCommand)
             );
         });
     }

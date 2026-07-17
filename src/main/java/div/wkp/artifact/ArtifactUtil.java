@@ -138,20 +138,21 @@ public final class ArtifactUtil {
                 .hasActiveSpear();
     }
 
-    public static void recallActiveSpear(ServerPlayerEntity player, Hand hand) {
+    public static boolean recallActiveSpear(ServerPlayerEntity player, Hand hand) {
         ArtifactStateComponent component =
                 ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player);
 
         if (!component.hasActiveSpear()) {
-            return;
+            return false;
         }
 
         Entity entity = getActiveSpearEntity(player, component);
         if (entity instanceof SpearProjectileEntity spearProjectile) {
-            spearProjectile.startRecall(hand);
-        } else {
-            component.clearActiveSpear();
+            return spearProjectile.startRecall(hand);
         }
+
+        component.clearActiveSpear();
+        return false;
     }
 
     public static void startUsingArtifact(ServerPlayerEntity player, Hand hand) {
@@ -249,6 +250,11 @@ public final class ArtifactUtil {
     ) {
         if (!component.hasActiveSpear()) {
             return null;
+        }
+
+        Entity byId = player.getServerWorld().getEntityById(component.getActiveSpearEntityId());
+        if (byId != null) {
+            return byId;
         }
 
         try {

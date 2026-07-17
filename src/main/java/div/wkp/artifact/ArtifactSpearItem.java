@@ -111,7 +111,7 @@ public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
 
         SpearProjectileEntity spear = new SpearProjectileEntity(player, hand, sourceSlot, stack.copy());
         player.getWorld().spawnEntity(spear);
-        component.setActiveSpear(spear.getUuidAsString(), sourceSlot);
+        component.setActiveSpear(spear.getUuidAsString(), spear.getId(), sourceSlot);
         SpearProjectileEntity.applyThrowRecoil(player);
 
         if (!player.getAbilities().creativeMode) {

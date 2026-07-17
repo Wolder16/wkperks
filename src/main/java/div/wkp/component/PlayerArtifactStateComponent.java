@@ -15,6 +15,7 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     private final List<StoredStack> storedSoulboundArtifacts = new ArrayList<>();
 
     private String activeSpearUuid = "";
+    private int activeSpearEntityId = -1;
     private int activeSpearSlot = -1;
 
     private boolean usingArtifact = false;
@@ -59,13 +60,19 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     }
 
     @Override
+    public int getActiveSpearEntityId() {
+        return activeSpearEntityId;
+    }
+
+    @Override
     public int getActiveSpearSlot() {
         return activeSpearSlot;
     }
 
     @Override
-    public void setActiveSpear(String spearUuid, int slot) {
+    public void setActiveSpear(String spearUuid, int entityId, int slot) {
         activeSpearUuid = spearUuid;
+        activeSpearEntityId = entityId;
         activeSpearSlot = slot;
         ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
     }
@@ -73,6 +80,7 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
     @Override
     public void clearActiveSpear() {
         activeSpearUuid = "";
+        activeSpearEntityId = -1;
         activeSpearSlot = -1;
         ArtifactComponents.ARTIFACT_STATE_COMPONENT.sync(provider);
     }
@@ -145,6 +153,7 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
 
         tag.put("StoredSoulboundArtifacts", list);
         tag.putString("ActiveSpearUuid", activeSpearUuid);
+        tag.putInt("ActiveSpearEntityId", activeSpearEntityId);
         tag.putInt("ActiveSpearSlot", activeSpearSlot);
     }
 
@@ -153,6 +162,7 @@ public class PlayerArtifactStateComponent implements ArtifactStateComponent {
         storedSoulboundArtifacts.clear();
         stopUsingArtifact();
         activeSpearUuid = tag.getString("ActiveSpearUuid");
+        activeSpearEntityId = tag.getInt("ActiveSpearEntityId");
         activeSpearSlot = tag.getInt("ActiveSpearSlot");
 
         NbtList list = tag.getList("StoredSoulboundArtifacts", 10);

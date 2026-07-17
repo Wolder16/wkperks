@@ -20,9 +20,11 @@ public interface ArtifactStateComponent extends Component, AutoSyncedComponent {
 
     String getActiveSpearUuid();
 
+    int getActiveSpearEntityId();
+
     int getActiveSpearSlot();
 
-    void setActiveSpear(String spearUuid, int slot);
+    void setActiveSpear(String spearUuid, int entityId, int slot);
 
     void clearActiveSpear();
 

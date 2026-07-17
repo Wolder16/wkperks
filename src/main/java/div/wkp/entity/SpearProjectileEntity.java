@@ -33,6 +33,7 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
     private static final double RECALL_BOOST_MIN_UPWARD = 0.4D;
     private static final double CATCH_DISTANCE = 1.2D;
     private static final double MIN_RECALL_DISTANCE = 2.0D;
+    private static final double AUTO_RECALL_DISTANCE = 50.0D;
     private static final double EMBED_DEPTH = -1.5D;
     private static final float BASE_DAMAGE = 6.0F;
     private static final int OVERHEAT_BURN_SECONDS = 3;
@@ -75,6 +76,12 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
 
     @Override
     public void tick() {
+        if (!recalling && this.getOwner() instanceof ServerPlayerEntity player) {
+            if (this.squaredDistanceTo(player) >= AUTO_RECALL_DISTANCE * AUTO_RECALL_DISTANCE) {
+                startRecall(Hand.OFF_HAND);
+            }
+        }
+
         if (recalling) {
             tickRecall();
             return;

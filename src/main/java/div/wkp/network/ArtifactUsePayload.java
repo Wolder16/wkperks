@@ -29,7 +29,8 @@ public record ArtifactUsePayload(Hand hand, Action action) implements CustomPayl
 
     public enum Action {
         START,
-        RELEASE
+        RELEASE,
+        RECALL
     }
 
     @Override

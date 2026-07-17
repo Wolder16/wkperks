@@ -1,6 +1,5 @@
 package div.wkp.client;
 
-import div.wkp.ArtifactComponents;
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
 import div.wkp.artifact.ArtifactUtil;
@@ -21,6 +20,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
@@ -41,6 +41,7 @@ public final class WKPerksClient implements ClientModInitializer {
     public void onInitializeClient() {
         registerDoubleJump();
         registerArtifactInput();
+        registerRecallHud();
         registerInventoryButtons();
         registerGeoItemRenderers();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
@@ -121,16 +122,20 @@ public final class WKPerksClient implements ClientModInitializer {
             if (useKeyDown && !artifactUseKeyWasDown) {
                 net.minecraft.util.Hand hand = findArtifactHand(player);
 
-                if (hand == null && ArtifactComponents.ARTIFACT_STATE_COMPONENT.get(player).hasActiveSpear()) {
-                    hand = findRecallHand(player);
-                }
-
                 if (hand != null) {
                     activeArtifactHand = hand;
                     ClientPlayNetworking.send(new ArtifactUsePayload(
                             hand,
                             ArtifactUsePayload.Action.START
                     ));
+                } else {
+                    net.minecraft.util.Hand recallHand = SpearRecallHudOverlay.getRecallHand();
+                    if (SpearRecallHudOverlay.isMarkerTargeted() && recallHand != null) {
+                        ClientPlayNetworking.send(new ArtifactUsePayload(
+                                recallHand,
+                                ArtifactUsePayload.Action.RECALL
+                        ));
+                    }
                 }
             }
 
@@ -169,16 +174,8 @@ public final class WKPerksClient implements ClientModInitializer {
         return null;
     }
 
-    private static net.minecraft.util.Hand findRecallHand(net.minecraft.entity.player.PlayerEntity player) {
-        if (player.getMainHandStack().isEmpty()) {
-            return net.minecraft.util.Hand.MAIN_HAND;
-        }
-
-        if (player.getOffHandStack().isEmpty()) {
-            return net.minecraft.util.Hand.OFF_HAND;
-        }
-
-        return net.minecraft.util.Hand.MAIN_HAND;
+    private void registerRecallHud() {
+        HudRenderCallback.EVENT.register(SpearRecallHudOverlay::render);
     }
 
     private void registerGeoItemRenderers() {
