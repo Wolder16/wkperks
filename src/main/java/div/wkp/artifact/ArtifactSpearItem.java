@@ -14,12 +14,9 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
-
-import java.util.function.Consumer;
 
 public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
     public static final int MAX_HEAT = 20;
@@ -35,6 +32,7 @@ public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
 
     public ArtifactSpearItem(Settings settings) {
         super(settings, MAX_HEAT, 0, 8, true);
+        GeoItem.registerSyncedAnimatable(this);
     }
 
     public static int getHeatPhase(ItemStack stack) {
@@ -143,22 +141,6 @@ public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
                         .formatted(Formatting.GRAY)
         );
         super.appendTooltip(stack, context, tooltip, type);
-    }
-
-    @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
-            private div.wkp.client.renderer.item.ArtifactSpearItemRenderer renderer;
-
-            @Override
-            public net.minecraft.client.render.item.BuiltinModelItemRenderer getGeoItemRenderer() {
-                if (this.renderer == null) {
-                    this.renderer = new div.wkp.client.renderer.item.ArtifactSpearItemRenderer();
-                }
-
-                return this.renderer;
-            }
-        });
     }
 
     @Override

@@ -2,7 +2,6 @@ package div.wkp.client.renderer.entity;
 
 import div.wkp.client.model.SpearProjectileGeoModel;
 import div.wkp.entity.SpearProjectileEntity;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;

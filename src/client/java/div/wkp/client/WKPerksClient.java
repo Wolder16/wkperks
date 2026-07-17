@@ -8,7 +8,9 @@ import div.wkp.artifact.TranslocatorItem;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.client.mixin.HandledScreenAccessor;
 import div.wkp.client.renderer.entity.SpearProjectileRenderer;
+import div.wkp.client.renderer.item.ArtifactSpearItemRenderer;
 import div.wkp.entity.ModEntities;
+import div.wkp.item.ModItems;
 import div.wkp.network.ArtifactUsePayload;
 import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
@@ -17,6 +19,7 @@ import div.wkp.screen.ModScreenHandlers;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -39,6 +42,7 @@ public final class WKPerksClient implements ClientModInitializer {
         registerDoubleJump();
         registerArtifactInput();
         registerInventoryButtons();
+        registerGeoItemRenderers();
         BlockEntityRendererFactories.register(ModBlockEntities.RHO_ALTAR, div.wkp.client.block.AltarPedestalRenderer::new);
         EntityRendererRegistry.register(ModEntities.SPEAR_PROJECTILE, SpearProjectileRenderer::new);
         HandledScreens.register(
@@ -175,6 +179,16 @@ public final class WKPerksClient implements ClientModInitializer {
         }
 
         return net.minecraft.util.Hand.MAIN_HAND;
+    }
+
+    private void registerGeoItemRenderers() {
+        ArtifactSpearItemRenderer spearRenderer = new ArtifactSpearItemRenderer();
+
+        BuiltinItemRendererRegistry.INSTANCE.register(
+                ModItems.ARTIFACT_SPEAR,
+                (stack, mode, matrices, vertexConsumers, light, overlay) ->
+                        spearRenderer.render(stack, mode, matrices, vertexConsumers, light, overlay)
+        );
     }
 
     private void registerInventoryButtons() {
