@@ -76,9 +76,9 @@ public class ArtifactSpearItem extends ArtifactItem implements GeoItem {
             boolean selected
     ) {
         if (!world.isClient
-                && entity instanceof ServerPlayerEntity
+                && entity instanceof ServerPlayerEntity player
                 && !selected
-                && slot != PlayerInventory.OFF_HAND_SLOT
+                && player.getOffHandStack() != stack
                 && stack.getDamage() > 0
                 && entity.age % COOL_INTERVAL_TICKS == 0) {
             stack.setDamage(Math.max(0, stack.getDamage() - 1));

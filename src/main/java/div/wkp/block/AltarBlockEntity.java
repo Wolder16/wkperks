@@ -12,6 +12,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -173,6 +174,10 @@ public class AltarBlockEntity extends BlockEntity {
                     getCachedState(),
                     3
             );
+
+            if (world instanceof ServerWorld serverWorld) {
+                serverWorld.getChunkManager().markForUpdate(pos);
+            }
         }
     }
 
@@ -192,6 +197,16 @@ public class AltarBlockEntity extends BlockEntity {
         ItemStack result = stack;
         stack = ItemStack.EMPTY;
         return result;
+    }
+
+    @Override
+    public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup lookup) {
+        return createNbt(lookup);
+    }
+
+    @Override
+    public BlockEntityUpdateS2CPacket toUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 
     @Override
