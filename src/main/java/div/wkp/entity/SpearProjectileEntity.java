@@ -27,11 +27,13 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity {
     private static final float THROW_SPEED = 5.0F;
     private static final double THROW_RECOIL = 0.5D;
-    private static final double RECALL_SPEED = 0.7D;
+    private static final double RECALL_SPEED = 1.0D;
     private static final double RECALL_BOOST_HORIZONTAL = 1.5D;
-    private static final double RECALL_BOOST_VERTICAL = 0.6D;
-    private static final double RECALL_BOOST_MIN_UPWARD = 0.3D;
+    private static final double RECALL_BOOST_VERTICAL = 0.75D;
+    private static final double RECALL_BOOST_MIN_UPWARD = 0.4D;
     private static final double CATCH_DISTANCE = 1.2D;
+    private static final double MIN_RECALL_DISTANCE = 2.0D;
+    private static final double EMBED_DEPTH = -0.5D;
     private static final float BASE_DAMAGE = 6.0F;
     private static final int OVERHEAT_BURN_SECONDS = 3;
     private static final float OVERHEAT_DIRECT_DAMAGE = 2.0F;
@@ -94,11 +96,16 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
             return;
         }
 
+        Vec3d impactVelocity = this.getVelocity();
+        Vec3d embedDirection = impactVelocity.lengthSquared() > 1.0E-6D
+                ? impactVelocity.normalize()
+                : Vec3d.fromPolar(this.getPitch(), this.getYaw());
+
         embedded = true;
         this.embeddedYaw = this.getYaw();
         this.embeddedPitch = this.getPitch();
         this.setVelocity(Vec3d.ZERO);
-        this.setPosition(blockHitResult.getPos());
+        this.setPosition(blockHitResult.getPos().add(embedDirection.multiply(EMBED_DEPTH)));
     }
 
     @Override
@@ -121,15 +128,20 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
         }
     }
 
-    public void startRecall(Hand hand) {
-        if (this.isRemoved()) {
-            return;
+    public boolean startRecall(Hand hand) {
+        if (this.isRemoved() || this.getOwner() == null) {
+            return false;
+        }
+
+        if (this.squaredDistanceTo(this.getOwner()) < MIN_RECALL_DISTANCE * MIN_RECALL_DISTANCE) {
+            return false;
         }
 
         this.recalling = true;
         this.embedded = false;
         this.recallHand = hand;
         this.noClip = true;
+        return true;
     }
 
     private void tickRecall() {
@@ -148,7 +160,10 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
         }
 
         Vec3d velocity = direction.normalize().multiply(RECALL_SPEED);
+        this.prevYaw = this.getYaw();
+        this.prevPitch = this.getPitch();
         this.setVelocity(velocity);
+        this.updateRotation();
         this.velocityModified = true;
         this.setPosition(this.getPos().add(velocity));
     }

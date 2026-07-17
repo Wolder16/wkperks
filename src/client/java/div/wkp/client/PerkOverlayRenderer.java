@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class PerkOverlayRenderer {
-    private static final int PANEL_HEIGHT = 22;
+    private static final int PANEL_HEIGHT = 30;
     private static final int PANEL_PADDING = 4;
     private static final int SLOT_SIZE = 18;
     private static final int SLOT_GAP = 2;
@@ -75,7 +75,7 @@ public final class PerkOverlayRenderer {
         int panelX = inventoryX + (inventoryWidth - panelWidth) / 2;
         int panelY = inventoryY - PANEL_HEIGHT - PANEL_MARGIN;
         int slotStartX = panelX + (panelWidth - contentWidth) / 2;
-        int slotY = panelY + 2;
+        int slotY = panelY + 3;
 
         drawPanel(context, panelX, panelY, panelWidth, PANEL_HEIGHT);
 
@@ -97,13 +97,13 @@ public final class PerkOverlayRenderer {
             if (perk.getMaxLevel() > 1) {
                 String levelText = String.valueOf(level);
                 int textWidth = client.textRenderer.getWidth(levelText);
-                int textX = slotX + SLOT_SIZE - textWidth - 2;
-                int textY = slotY + 1;
+                int textX = slotX + (SLOT_SIZE - textWidth) / 2;
+                int textY = slotY + SLOT_SIZE + 1;
 
                 context.fill(
-                        textX - 1,
+                        slotX,
                         textY - 1,
-                        textX + textWidth + 1,
+                        slotX + SLOT_SIZE,
                         textY + 8,
                         0xCC1A100B
                 );
