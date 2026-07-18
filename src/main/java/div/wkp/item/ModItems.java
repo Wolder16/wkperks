@@ -46,7 +46,7 @@ public final class ModItems {
 
     public static final Item GOLD_ROACH = register(
             "gold_roach",
-            new Item(new Item.Settings())
+            new Item(new Item.Settings().maxCount(8))
     );
 
     public static final Item RHO_BANNER_PATTERN = register(

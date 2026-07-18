@@ -1,10 +1,12 @@
 package div.wkp.client;
 
+import div.wkp.ArtifactComponents;
 import div.wkp.PerkComponents;
 import div.wkp.PerkUtil;
 import div.wkp.artifact.ArtifactUtil;
 import div.wkp.artifact.TranslocatorItem;
 import div.wkp.block.ModBlockEntities;
+
 import div.wkp.client.mixin.HandledScreenAccessor;
 import div.wkp.client.renderer.entity.SpearProjectileRenderer;
 import div.wkp.client.renderer.item.ArtifactSpearItemRenderer;
@@ -15,6 +17,7 @@ import div.wkp.network.DoubleJumpPayload;
 import div.wkp.network.OpenPortableBankPayload;
 import div.wkp.perk.perks.PortableBankPerk;
 import div.wkp.screen.ModScreenHandlers;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -114,7 +117,8 @@ public final class WKPerksClient implements ClientModInitializer {
                     && !ArtifactUtil.isHoldingArtifact(player, activeArtifactHand)) {
                 ClientPlayNetworking.send(new ArtifactUsePayload(
                         activeArtifactHand,
-                        ArtifactUsePayload.Action.RELEASE
+                        ArtifactUsePayload.Action.RELEASE,
+                        false
                 ));
                 activeArtifactHand = null;
             }
@@ -126,14 +130,16 @@ public final class WKPerksClient implements ClientModInitializer {
                     activeArtifactHand = hand;
                     ClientPlayNetworking.send(new ArtifactUsePayload(
                             hand,
-                            ArtifactUsePayload.Action.START
+                            ArtifactUsePayload.Action.START,
+                            false
                     ));
                 } else {
                     net.minecraft.util.Hand recallHand = SpearRecallHudOverlay.getRecallHand();
-                    if (SpearRecallHudOverlay.isMarkerTargeted() && recallHand != null) {
+                    if (recallHand != null) {
                         ClientPlayNetworking.send(new ArtifactUsePayload(
                                 recallHand,
-                                ArtifactUsePayload.Action.RECALL
+                                ArtifactUsePayload.Action.RECALL,
+                                SpearRecallHudOverlay.isMarkerTargeted()
                         ));
                     }
                 }
@@ -142,7 +148,8 @@ public final class WKPerksClient implements ClientModInitializer {
             if (!useKeyDown && artifactUseKeyWasDown && activeArtifactHand != null) {
                 ClientPlayNetworking.send(new ArtifactUsePayload(
                         activeArtifactHand,
-                        ArtifactUsePayload.Action.RELEASE
+                        ArtifactUsePayload.Action.RELEASE,
+                        false
                 ));
                 activeArtifactHand = null;
             }
@@ -175,7 +182,9 @@ public final class WKPerksClient implements ClientModInitializer {
     }
 
     private void registerRecallHud() {
-        HudRenderCallback.EVENT.register(SpearRecallHudOverlay::render);
+        HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
+            SpearRecallHudOverlay.render(drawContext, tickDelta);
+        });
     }
 
     private void registerGeoItemRenderers() {

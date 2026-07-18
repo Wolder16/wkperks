@@ -6,7 +6,7 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 
-public record ArtifactUsePayload(Hand hand, Action action) implements CustomPayload {
+public record ArtifactUsePayload(Hand hand, Action action, boolean markerTargeted) implements CustomPayload {
     public static final CustomPayload.Id<ArtifactUsePayload> ID =
             new CustomPayload.Id<>(Identifier.of("wkperks", "artifact_use"));
 
@@ -16,13 +16,15 @@ public record ArtifactUsePayload(Hand hand, Action action) implements CustomPayl
                 public void encode(RegistryByteBuf buf, ArtifactUsePayload payload) {
                     buf.writeEnumConstant(payload.hand());
                     buf.writeEnumConstant(payload.action());
+                    buf.writeBoolean(payload.markerTargeted());
                 }
 
                 @Override
                 public ArtifactUsePayload decode(RegistryByteBuf buf) {
                     return new ArtifactUsePayload(
                             buf.readEnumConstant(Hand.class),
-                            buf.readEnumConstant(Action.class)
+                            buf.readEnumConstant(Action.class),
+                            buf.readBoolean()
                     );
                 }
             };

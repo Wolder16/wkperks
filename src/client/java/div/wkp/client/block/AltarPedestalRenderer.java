@@ -49,10 +49,12 @@ public class AltarPedestalRenderer implements BlockEntityRenderer<AltarBlockEnti
 
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
 
+        int renderLight = 0xF000F0;
+
         itemRenderer.renderItem(
                 entity.getStack(),
                 mode,
-                light,
+                renderLight,
                 overlay,
                 matrices,
                 vertexConsumers,

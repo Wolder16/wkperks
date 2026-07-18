@@ -15,9 +15,10 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 public final class SpearRecallHudOverlay {
-    private static final int MARKER_RADIUS = 8;
-    private static final int TARGET_RADIUS = 10;
-    private static final double MIN_RECALL_DISTANCE = 3.0D;
+    private static final int MARKER_RADIUS = 12;
+    private static final int TARGET_RADIUS = 24;
+    private static final double MIN_RECALL_DISTANCE = 2.0D;
+    private static final double MARKER_OFFSET = -1.5D;
 
     private static boolean markerVisible = false;
     private static boolean markerTargeted = false;
@@ -61,7 +62,8 @@ public final class SpearRecallHudOverlay {
             return;
         }
 
-        ScreenPoint marker = projectToScreen(client, spear.getPos(), tickDelta);
+        Vec3d markerWorldPos = spear.getPos().add(getMarkerOffsetVector(spear).multiply(MARKER_OFFSET));
+        ScreenPoint marker = projectToScreen(client, markerWorldPos, tickDelta);
         if (marker == null) {
             return;
         }
@@ -74,11 +76,11 @@ public final class SpearRecallHudOverlay {
         markerTargeted = Math.abs(marker.x - centerX) <= TARGET_RADIUS
                 && Math.abs(marker.y - centerY) <= TARGET_RADIUS;
 
-        int ringColor = recallHand == null
-                ? 0x66880000
-                : markerTargeted ? 0xFFFF6060 : 0xFFAA3030;
+        int markerColor = recallHand == null
+                ? 0x80800000
+                : markerTargeted ? 0x80FF7070 : 0x80C04040;
 
-        drawMarker(context, marker.x, marker.y, 0xFFB0B0B0, ringColor);
+        drawMarker(context, marker.x, marker.y, markerColor);
     }
 
     private static Hand findRecallHand(PlayerEntity player) {
@@ -90,7 +92,7 @@ public final class SpearRecallHudOverlay {
             return Hand.OFF_HAND;
         }
 
-        return null;
+        return Hand.MAIN_HAND;
     }
 
     private static ScreenPoint projectToScreen(MinecraftClient client, Vec3d worldPos, RenderTickCounter tickDelta) {
@@ -123,16 +125,18 @@ public final class SpearRecallHudOverlay {
         return new ScreenPoint(x, y);
     }
 
-    private static void drawMarker(DrawContext context, int x, int y, int crossColor, int ringColor) {
-        context.fill(x - 1, y - 6, x + 1, y - 1, crossColor);
-        context.fill(x - 1, y + 1, x + 1, y + 6, crossColor);
-        context.fill(x - 6, y - 1, x - 1, y + 1, crossColor);
-        context.fill(x + 1, y - 1, x + 6, y + 1, crossColor);
+    private static Vec3d getMarkerOffsetVector(SpearProjectileEntity spear) {
+        float yaw = spear.getEmbeddedYaw();
+        float pitch = spear.getEmbeddedPitch();
+        return Vec3d.fromPolar(pitch, yaw);
+    }
 
-        context.fill(x - MARKER_RADIUS, y - MARKER_RADIUS, x - MARKER_RADIUS + 2, y + MARKER_RADIUS, ringColor);
-        context.fill(x + MARKER_RADIUS - 2, y - MARKER_RADIUS, x + MARKER_RADIUS, y + MARKER_RADIUS, ringColor);
-        context.fill(x - MARKER_RADIUS, y - MARKER_RADIUS, x + MARKER_RADIUS, y - MARKER_RADIUS + 2, ringColor);
-        context.fill(x - MARKER_RADIUS, y + MARKER_RADIUS - 2, x + MARKER_RADIUS, y + MARKER_RADIUS, ringColor);
+    private static void drawMarker(DrawContext context, int x, int y, int color) {
+        for (int row = 0; row < MARKER_RADIUS; row++) {
+            int halfWidth = Math.max(1, row / 2 + 1);
+            int yPos = y + row - MARKER_RADIUS / 2;
+            context.fill(x - halfWidth, yPos, x + halfWidth + 1, yPos + 1, color);
+        }
     }
 
     private record ScreenPoint(int x, int y) {

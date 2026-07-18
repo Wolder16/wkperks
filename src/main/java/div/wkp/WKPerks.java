@@ -6,6 +6,7 @@ import div.wkp.artifact.ArtifactUtil;
 import div.wkp.block.ModBlocks;
 import div.wkp.block.ModBlockEntities;
 import div.wkp.config.WKPerksConfig;
+import div.wkp.config.WKPerksServerConfig;
 import div.wkp.entity.ModEntities;
 import div.wkp.item.ModItems;
 import div.wkp.altar.AltarRegistry;
@@ -80,7 +81,6 @@ public final class WKPerks implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("WKPerks: инициализация...");
-        WKPerksConfig.load();
         ModItems.initialize();
         ModBlocks.initialize();
         ModScreenHandlers.initialize();
@@ -161,7 +161,10 @@ public final class WKPerks implements ModInitializer {
                 } else if (payload.action() == ArtifactUsePayload.Action.RELEASE) {
                     ArtifactUtil.releaseUsingArtifact(player, payload.hand());
                 } else if (payload.action() == ArtifactUsePayload.Action.RECALL) {
-                    ArtifactUtil.recallActiveSpear(player, payload.hand());
+                    if (WKPerksServerConfig.get().spearRecallMode == WKPerksServerConfig.SpearRecallMode.SIMPLE_RMB
+                            || payload.markerTargeted()) {
+                        ArtifactUtil.recallActiveSpear(player, payload.hand());
+                    }
                 }
             });
         });
