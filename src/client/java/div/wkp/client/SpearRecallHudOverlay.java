@@ -16,9 +16,10 @@ import org.joml.Vector3f;
 
 public final class SpearRecallHudOverlay {
     private static final int MARKER_RADIUS = 12;
-    private static final int TARGET_RADIUS = 24;
+    private static final int TARGET_RADIUS = 14;
+    private static final int FADE_RADIUS = 42;
     private static final double MIN_RECALL_DISTANCE = 2.0D;
-    private static final double MARKER_OFFSET = -1.5D;
+    private static final double MARKER_OFFSET = 0.25D;
 
     private static boolean markerVisible = false;
     private static boolean markerTargeted = false;
@@ -69,16 +70,28 @@ public final class SpearRecallHudOverlay {
         }
 
         recallHand = findRecallHand(player);
-        markerVisible = true;
 
         int centerX = context.getScaledWindowWidth() / 2;
         int centerY = context.getScaledWindowHeight() / 2;
-        markerTargeted = Math.abs(marker.x - centerX) <= TARGET_RADIUS
-                && Math.abs(marker.y - centerY) <= TARGET_RADIUS;
+        int dx = marker.x - centerX;
+        int dy = marker.y - centerY;
+        double distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > FADE_RADIUS) {
+            return;
+        }
+
+        markerVisible = true;
+        markerTargeted = distance <= TARGET_RADIUS;
+
+        float fade = 1.0F - (float) Math.min(distance / FADE_RADIUS, 1.0D);
+        int alpha = Math.max(0x20, Math.min(0x80, (int) (fade * 0x80)));
 
         int markerColor = recallHand == null
-                ? 0x80800000
-                : markerTargeted ? 0x80FF7070 : 0x80C04040;
+                ? (alpha << 24) | 0x880000
+                : markerTargeted
+                ? (alpha << 24) | 0xFF7070
+                : (alpha << 24) | 0xC04040;
 
         drawMarker(context, marker.x, marker.y, markerColor);
     }
@@ -128,7 +141,7 @@ public final class SpearRecallHudOverlay {
     private static Vec3d getMarkerOffsetVector(SpearProjectileEntity spear) {
         float yaw = spear.getEmbeddedYaw();
         float pitch = spear.getEmbeddedPitch();
-        return Vec3d.fromPolar(pitch, yaw);
+        return Vec3d.fromPolar(pitch, yaw).normalize();
     }
 
     private static void drawMarker(DrawContext context, int x, int y, int color) {

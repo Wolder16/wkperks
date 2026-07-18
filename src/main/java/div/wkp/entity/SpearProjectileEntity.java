@@ -27,6 +27,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity {
     private static final float THROW_SPEED = 5.0F;
     private static final double THROW_RECOIL = 0.5D;
+    private static final double THROW_VERTICAL_RECOIL = 1.5D;
     private static final double RECALL_SPEED = 1.0D;
     private static final double RECALL_BOOST_HORIZONTAL = 1.5D;
     private static final double RECALL_BOOST_VERTICAL = 0.65D;
@@ -267,7 +268,7 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
 
     public static void applyThrowRecoil(PlayerEntity player) {
         Vec3d look = player.getRotationVector();
-        player.addVelocity(-look.x * THROW_RECOIL, 0.4D, -look.z * THROW_RECOIL);
+        player.addVelocity(-look.x * THROW_RECOIL, THROW_VERTICAL_RECOIL, -look.z * THROW_RECOIL);
         player.velocityModified = true;
     }
 

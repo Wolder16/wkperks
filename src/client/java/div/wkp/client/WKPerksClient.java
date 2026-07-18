@@ -182,9 +182,7 @@ public final class WKPerksClient implements ClientModInitializer {
     }
 
     private void registerRecallHud() {
-        HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
-            SpearRecallHudOverlay.render(drawContext, tickDelta);
-        });
+        HudRenderCallback.EVENT.register(SpearRecallHudOverlay::render);
     }
 
     private void registerGeoItemRenderers() {
