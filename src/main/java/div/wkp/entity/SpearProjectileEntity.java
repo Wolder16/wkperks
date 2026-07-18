@@ -268,7 +268,7 @@ public class SpearProjectileEntity extends ThrownItemEntity implements GeoEntity
 
     public static void applyThrowRecoil(PlayerEntity player) {
         Vec3d look = player.getRotationVector();
-        player.addVelocity(-look.x * THROW_RECOIL, THROW_VERTICAL_RECOIL, -look.z * THROW_RECOIL);
+        player.addVelocity(-look.x * THROW_RECOIL, -look.y * THROW_VERTICAL_RECOIL, -look.z * THROW_RECOIL);
         player.velocityModified = true;
     }
 

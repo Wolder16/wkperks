@@ -22,7 +22,7 @@ public class TranslocatorItem extends ArtifactItem {
             new DustParticleEffect(new Vector3f(0.92F, 0.12F, 0.14F), 1.15F);
 
     public TranslocatorItem(Settings settings) {
-        super(settings, 0, 0, 200, true);
+        super(settings, 0, 0, 400, true);
     }
 
     @Override
